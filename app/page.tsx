@@ -12,10 +12,19 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
 import { toast } from "sonner"
 
 export default function PlaylistPrompt() {
   const [prompt, setPrompt] = useState("")
+  const [showConnectModal, setShowConnectModal] = useState(false)
   const { isAuthenticated, user, isLoading, login, logout } = useSpotifyAuth()
 
   // Check if there's an error or success in the URL (from callback)
@@ -69,14 +78,7 @@ export default function PlaylistPrompt() {
 
     // Check if user is authenticated
     if (!isAuthenticated) {
-      toast("Connect your Spotify", {
-        description: "To create your playlist",
-        duration: 4000,
-        action: {
-          label: "Connect",
-          onClick: () => login(),
-        },
-      })
+      setShowConnectModal(true)
       return
     }
 
@@ -90,6 +92,11 @@ export default function PlaylistPrompt() {
 
     // Placeholder for future Gemini integration
     console.log("Prompt sent:", prompt)
+  }
+
+  const handleConnect = () => {
+    setShowConnectModal(false)
+    login()
   }
 
   return (
@@ -239,6 +246,61 @@ export default function PlaylistPrompt() {
           </div>
         </form>
       </div>
+
+      {/* Modal para conectar Spotify */}
+      <Dialog open={showConnectModal} onOpenChange={setShowConnectModal}>
+        <DialogContent
+          className="sm:max-w-md"
+          style={{
+            backgroundColor: "#1a1a1a",
+            border: "1px solid #333",
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl font-semibold">
+              Connect your Spotify
+            </DialogTitle>
+            <DialogDescription className="text-gray-400 pt-2">
+              You need to connect your Spotify account to create playlists.
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+            <button
+              onClick={() => setShowConnectModal(false)}
+              className="px-4 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
+              style={{
+                backgroundColor: "#2a2a2a",
+                color: "#fff",
+                border: "1px solid #444",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#333"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#2a2a2a"
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConnect}
+              className="px-4 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
+              style={{
+                backgroundColor: "#1DB954",
+                color: "#000",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#1ed760"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#1DB954"
+              }}
+            >
+              Connect Spotify
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }
