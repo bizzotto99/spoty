@@ -1,9 +1,14 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   const cookieStore = await cookies()
   const accessToken = cookieStore.get("spotify_access_token")?.value
+  
+  // Debug: ver todas las cookies disponibles
+  const allCookies = cookieStore.getAll()
+  console.log("🔍 All cookies:", allCookies.map(c => c.name).join(", "))
+  console.log("🔍 Access token present:", !!accessToken)
 
   if (!accessToken) {
     console.log("❌ No access token found in cookies")

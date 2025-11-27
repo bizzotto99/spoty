@@ -24,10 +24,42 @@ export function useSpotifyAuth(): UseSpotifyAuthReturn {
 
   // Verificar estado de autenticación al cargar
   useEffect(() => {
-    checkAuthStatus()
+    // Si estamos volviendo del callback, hacer múltiples intentos
+    const isReturningFromCallback = typeof window !== "undefined" && 
+      window.location.search.includes("connected=true")
+    
+    if (isReturningFromCallback) {
+      // Limpiar el query parameter de la URL si aún está presente
+      const url = new URL(window.location.href)
+      if (url.searchParams.has("connected")) {
+        url.searchParams.delete("connected")
+        window.history.replaceState({}, "", url.toString())
+      }
+      
+      // Hacer múltiples intentos para verificar la autenticación
+      let attempts = 0
+      const maxAttempts = 5
+      const attemptInterval = 600 // ms
+      
+      const tryCheckAuth = async () => {
+        attempts++
+        const authenticated = await checkAuthStatus()
+        
+        // Si no está autenticado después del intento y aún tenemos intentos, intentar de nuevo
+        // Usar un pequeño delay para permitir que las cookies estén disponibles
+        if (!authenticated && attempts < maxAttempts) {
+          setTimeout(tryCheckAuth, attemptInterval)
+        }
+      }
+      
+      // Empezar después de un delay inicial para dar tiempo a las cookies
+      setTimeout(tryCheckAuth, 800)
+    } else {
+      checkAuthStatus()
+    }
   }, [])
 
-  const checkAuthStatus = async () => {
+  const checkAuthStatus = async (): Promise<boolean> => {
     try {
       const response = await fetch("/api/auth/me")
       const data = await response.json()
@@ -35,16 +67,20 @@ export function useSpotifyAuth(): UseSpotifyAuthReturn {
       if (data.authenticated && data.user) {
         setIsAuthenticated(true)
         setUser(data.user)
+        setIsLoading(false)
+        return true
       } else {
         setIsAuthenticated(false)
         setUser(null)
+        setIsLoading(false)
+        return false
       }
     } catch (error) {
       console.error("Error al verificar autenticación:", error)
       setIsAuthenticated(false)
       setUser(null)
-    } finally {
       setIsLoading(false)
+      return false
     }
   }
 

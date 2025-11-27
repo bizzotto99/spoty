@@ -36,10 +36,14 @@ export async function GET() {
   )
 
   // Guardar el state en una cookie httpOnly
+  const isProduction = process.env.NODE_ENV === "production"
+  const isSecure = isProduction
+  
   response.cookies.set("spotify_auth_state", state, {
     httpOnly: true,
-    secure: process.env.NODE_ENV === "production",
+    secure: isSecure,
     sameSite: "lax",
+    path: "/",
     maxAge: 60 * 10, // 10 minutos
   })
 

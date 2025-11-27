@@ -86,40 +86,45 @@ export async function GET(request: NextRequest) {
 
     const user = await userResponse.json()
 
-    // Guardar tokens en cookies seguras
-    const baseUrl = new URL("/", request.url)
-    const response = NextResponse.redirect(new URL("/?connected=true", baseUrl))
-    
-    // Determinar si estamos en producción
+    // Determinar configuración de cookies
+    // En producción (Vercel), siempre usar HTTPS
     const isProduction = process.env.NODE_ENV === "production"
     const isSecure = isProduction || request.url.startsWith("https://")
     
-    // Guardar tokens en cookies seguras
-    response.cookies.set("spotify_access_token", tokens.access_token, {
+    // Crear la respuesta de redirect y establecer cookies
+    const redirectUrl = new URL("/?connected=true", request.url)
+    const response = NextResponse.redirect(redirectUrl)
+    
+    // Configuración base para cookies
+    const cookieBaseOptions = {
       httpOnly: true,
       secure: isSecure,
-      sameSite: "lax",
-      maxAge: tokens.expires_in || 3600, // Spotify generalmente devuelve 3600 segundos (1 hora)
+      sameSite: "lax" as const,
       path: "/",
+    }
+    
+    // Guardar tokens en cookies
+    response.cookies.set("spotify_access_token", tokens.access_token, {
+      ...cookieBaseOptions,
+      maxAge: tokens.expires_in || 3600,
     })
 
     response.cookies.set("spotify_refresh_token", tokens.refresh_token, {
-      httpOnly: true,
-      secure: isSecure,
-      sameSite: "lax",
+      ...cookieBaseOptions,
       maxAge: 60 * 60 * 24 * 365, // 1 año
-      path: "/",
     })
 
     response.cookies.set("spotify_user_id", user.id, {
-      httpOnly: false, // Necesitamos acceso desde el cliente para mostrar info
+      httpOnly: false,
       secure: isSecure,
       sameSite: "lax",
-      maxAge: 60 * 60 * 24 * 365,
       path: "/",
+      maxAge: 60 * 60 * 24 * 365,
     })
 
     console.log("✅ User authenticated:", user.id, user.display_name)
+    console.log("🔧 Cookie settings - secure:", isSecure, "production:", isProduction, "url:", request.url)
+    console.log("🍪 Cookies set: access_token, refresh_token, user_id")
     return response
   } catch (error) {
     console.error("Error en el callback:", error)
