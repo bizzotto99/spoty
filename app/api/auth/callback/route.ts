@@ -91,6 +91,7 @@ export async function GET(request: NextRequest) {
       headers: {
         Authorization: `Bearer ${tokens.access_token}`,
       },
+      cache: 'no-store', // Desactivar caché para evitar errores antiguos
     })
 
     if (!userResponse.ok) {
@@ -116,7 +117,7 @@ export async function GET(request: NextRequest) {
     // Crear la URL de redirect
     const redirectUrl = new URL("/?connected=true", request.url)
     
-    // Crear la respuesta de redirect primero
+    // Crear la respuesta de redirect
     const response = NextResponse.redirect(redirectUrl)
     
     // Establecer cookies en la respuesta

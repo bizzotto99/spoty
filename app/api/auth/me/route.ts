@@ -20,6 +20,7 @@ export async function GET(request: NextRequest) {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
+      cache: 'no-store', // Desactivar caché para evitar errores antiguos
     })
 
     if (!response.ok) {
