@@ -18,14 +18,21 @@ export default function PlaylistPrompt() {
   const [prompt, setPrompt] = useState("")
   const { isAuthenticated, user, isLoading, login, logout } = useSpotifyAuth()
 
-  // Check if there's an error in the URL (from callback)
+  // Check if there's an error or success in the URL (from callback)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const error = params.get("error")
+    const connected = params.get("connected")
+    
     if (error) {
       console.error("Authentication error:", error)
-      // You can show a toast or error message here
-      // Clear the URL
+      toast.error("Connection failed", {
+        description: "Please try connecting again",
+        duration: 4000,
+      })
+      window.history.replaceState({}, "", "/")
+    } else if (connected === "true") {
+      // Limpiar la URL (el hook se encargará de verificar la autenticación)
       window.history.replaceState({}, "", "/")
     }
   }, [])
