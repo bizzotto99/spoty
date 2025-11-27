@@ -35,14 +35,13 @@ export default function PlaylistPrompt() {
 
     // Check if user is authenticated
     if (!isAuthenticated) {
-      toast("Hey! Let's get you connected 🎵", {
-        description: "We need your Spotify to create something amazing. Connect and let's find your perfect sound!",
-        duration: 6000,
+      toast("Connect your Spotify", {
+        description: "To create your playlist",
+        duration: 4000,
         action: {
           label: "Connect",
           onClick: () => login(),
         },
-        icon: <Music size={18} style={{ color: "#1DB954" }} />,
       })
       return
     }
