@@ -303,6 +303,21 @@ export default function PlaylistPrompt() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Footer */}
+      <footer className="w-full py-4 relative z-10 flex justify-center">
+        <p className="text-gray-500 text-sm">
+          Powered by{" "}
+          <a
+            href="https://dotasolutions.agency"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-[#1DB954] hover:text-[#1ed760] transition-colors"
+          >
+            Dota Solutions
+          </a>
+        </p>
+      </footer>
     </main>
   )
 }
