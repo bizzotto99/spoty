@@ -113,29 +113,32 @@ export async function GET(request: NextRequest) {
     const isProduction = process.env.NODE_ENV === "production"
     const isSecure = isProduction || request.url.startsWith("https://")
     
-    // Crear la URL de redirect usando new URL con la request.url como base
+    // Crear la URL de redirect
     const redirectUrl = new URL("/?connected=true", request.url)
     
-    // Crear la respuesta de redirect
+    // Crear la respuesta de redirect primero
     const response = NextResponse.redirect(redirectUrl)
     
-    // Configuración base para cookies
-    const cookieBaseOptions = {
+    // Establecer cookies en la respuesta
+    const expiresInSeconds = tokens.expires_in || 3600
+    const refreshTokenMaxAge = 60 * 60 * 24 * 365 // 1 año
+    const userIdMaxAge = 60 * 60 * 24 * 365 // 1 año
+    
+    // Usar SameSite=Lax que funciona mejor con redirects
+    response.cookies.set("spotify_access_token", tokens.access_token, {
       httpOnly: true,
       secure: isSecure,
       sameSite: "lax" as const,
       path: "/",
-    }
-    
-    // Establecer cookies en la respuesta ANTES de eliminar la cookie del state
-    response.cookies.set("spotify_access_token", tokens.access_token, {
-      ...cookieBaseOptions,
-      maxAge: tokens.expires_in || 3600,
+      maxAge: expiresInSeconds,
     })
 
     response.cookies.set("spotify_refresh_token", tokens.refresh_token, {
-      ...cookieBaseOptions,
-      maxAge: 60 * 60 * 24 * 365, // 1 año
+      httpOnly: true,
+      secure: isSecure,
+      sameSite: "lax" as const,
+      path: "/",
+      maxAge: refreshTokenMaxAge,
     })
 
     response.cookies.set("spotify_user_id", user.id, {
@@ -143,10 +146,10 @@ export async function GET(request: NextRequest) {
       secure: isSecure,
       sameSite: "lax" as const,
       path: "/",
-      maxAge: 60 * 60 * 24 * 365,
+      maxAge: userIdMaxAge,
     })
 
-    // Eliminar el state de la cookie ya que fue usado
+    // Eliminar el state de la cookie
     response.cookies.delete("spotify_auth_state")
 
     console.log("✅ User authenticated:", user.id, user.display_name)
@@ -154,6 +157,7 @@ export async function GET(request: NextRequest) {
     console.log("🔧 Redirect URL:", redirectUrl.toString())
     console.log("🍪 Cookies set: access_token, refresh_token, user_id")
     console.log("🍪 Cookie values - access_token length:", tokens.access_token.length)
+    
     return response
   } catch (error) {
     console.error("Error en el callback:", error)
