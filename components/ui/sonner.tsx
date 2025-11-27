@@ -9,14 +9,16 @@ const Toaster = ({ ...props }: ToasterProps) => {
       className="toaster group"
       toastOptions={{
         style: {
-          background: "#1a1a1a",
-          border: "1px solid #333",
+          background: "#0f0f0f",
+          border: "2px solid #1DB954",
+          borderRadius: "16px",
           color: "#fff",
+          padding: "16px",
         },
         classNames: {
           error: "border-[#1DB954]",
           success: "border-[#1DB954]",
-          actionButton: "bg-[#1DB954] hover:bg-[#1ed760] text-black font-medium rounded-md",
+          actionButton: "bg-[#1DB954] hover:bg-[#1ed760] text-black font-medium rounded-full px-5 py-2 transition-all",
         },
       }}
       {...props}

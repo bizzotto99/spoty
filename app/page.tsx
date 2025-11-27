@@ -35,14 +35,14 @@ export default function PlaylistPrompt() {
 
     // Check if user is authenticated
     if (!isAuthenticated) {
-      toast.error("Connect to Spotify first", {
-        description: "Connect your Spotify account to create personalized playlists based on your music taste!",
-        duration: 5000,
+      toast("Hey! Let's get you connected 🎵", {
+        description: "We need your Spotify to create something amazing. Connect and let's find your perfect sound!",
+        duration: 6000,
         action: {
-          label: "Connect now",
+          label: "Connect",
           onClick: () => login(),
         },
-        icon: <Music size={18} />,
+        icon: <Music size={18} style={{ color: "#1DB954" }} />,
       })
       return
     }
@@ -72,7 +72,7 @@ export default function PlaylistPrompt() {
             <img 
               src="/logo.png" 
               alt="Spoty" 
-              className="h-8 w-auto"
+              className="h-10 w-auto"
             />
           </div>
 
