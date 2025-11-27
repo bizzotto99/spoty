@@ -102,7 +102,7 @@ export default function PlaylistPrompt() {
   return (
     <main className="min-h-screen w-full flex flex-col relative" style={{ backgroundColor: "#000" }}>
       <ParticlesBackground />
-      <nav className="w-full px-6 py-4 relative z-10" style={{ backgroundColor: "#000" }}>
+      <nav className="w-full px-6 py-4 relative z-10" style={{ backgroundColor: "transparent" }}>
         <div
           className="flex items-center justify-between rounded-full px-6 py-3 max-w-6xl mx-auto"
           style={{ backgroundColor: "#1DB954" }}
@@ -250,10 +250,12 @@ export default function PlaylistPrompt() {
       {/* Modal para conectar Spotify */}
       <Dialog open={showConnectModal} onOpenChange={setShowConnectModal}>
         <DialogContent
-          className="sm:max-w-md"
+          className="sm:max-w-md rounded-2xl"
+          showCloseButton={false}
           style={{
             backgroundColor: "#1a1a1a",
             border: "1px solid #333",
+            borderRadius: "1.5rem",
           }}
         >
           <DialogHeader>
@@ -264,7 +266,7 @@ export default function PlaylistPrompt() {
               You need to connect your Spotify account to create playlists.
             </DialogDescription>
           </DialogHeader>
-          <DialogFooter className="flex-col sm:flex-row gap-2 sm:gap-0">
+          <DialogFooter className="flex-col sm:flex-row gap-3 sm:gap-4">
             <button
               onClick={() => setShowConnectModal(false)}
               className="px-4 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
