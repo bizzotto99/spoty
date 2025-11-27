@@ -32,8 +32,17 @@ export default function PlaylistPrompt() {
       })
       window.history.replaceState({}, "", "/")
     } else if (connected === "true") {
-      // Limpiar la URL (el hook se encargará de verificar la autenticación)
+      // Limpiar la URL
       window.history.replaceState({}, "", "/")
+      // Mostrar mensaje de éxito y recargar para verificar autenticación
+      toast.success("Connected!", {
+        description: "Your Spotify account is now connected",
+        duration: 2000,
+      })
+      // Recargar la página para asegurar que las cookies estén disponibles
+      setTimeout(() => {
+        window.location.reload()
+      }, 500)
     }
   }, [])
 

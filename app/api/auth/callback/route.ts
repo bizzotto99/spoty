@@ -87,12 +87,17 @@ export async function GET(request: NextRequest) {
     const user = await userResponse.json()
 
     // Guardar tokens en cookies seguras
-    const response = NextResponse.redirect(new URL("/?connected=true", request.url))
+    const baseUrl = new URL("/", request.url)
+    const response = NextResponse.redirect(new URL("/?connected=true", baseUrl))
+    
+    // Determinar si estamos en producción
+    const isProduction = process.env.NODE_ENV === "production"
+    const isSecure = isProduction || request.url.startsWith("https://")
     
     // Guardar tokens en cookies seguras
     response.cookies.set("spotify_access_token", tokens.access_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isSecure,
       sameSite: "lax",
       maxAge: tokens.expires_in || 3600, // Spotify generalmente devuelve 3600 segundos (1 hora)
       path: "/",
@@ -100,7 +105,7 @@ export async function GET(request: NextRequest) {
 
     response.cookies.set("spotify_refresh_token", tokens.refresh_token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
+      secure: isSecure,
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 365, // 1 año
       path: "/",
@@ -108,12 +113,13 @@ export async function GET(request: NextRequest) {
 
     response.cookies.set("spotify_user_id", user.id, {
       httpOnly: false, // Necesitamos acceso desde el cliente para mostrar info
-      secure: process.env.NODE_ENV === "production",
+      secure: isSecure,
       sameSite: "lax",
       maxAge: 60 * 60 * 24 * 365,
       path: "/",
     })
 
+    console.log("✅ User authenticated:", user.id, user.display_name)
     return response
   } catch (error) {
     console.error("Error en el callback:", error)

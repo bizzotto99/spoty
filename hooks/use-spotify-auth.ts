@@ -24,23 +24,7 @@ export function useSpotifyAuth(): UseSpotifyAuthReturn {
 
   // Verificar estado de autenticación al cargar
   useEffect(() => {
-    const checkAfterCallback = window.location.search.includes("connected=true")
-    
-    // Si venimos del callback, esperar un poco más para que las cookies estén disponibles
-    const delay = checkAfterCallback ? 500 : 0
-    
-    const verifyAuth = async () => {
-      await checkAuthStatus()
-      
-      // Si venimos del callback y aún no está autenticado, intentar una vez más
-      if (checkAfterCallback) {
-        setTimeout(async () => {
-          await checkAuthStatus()
-        }, 500)
-      }
-    }
-    
-    setTimeout(verifyAuth, delay)
+    checkAuthStatus()
   }, [])
 
   const checkAuthStatus = async () => {
