@@ -26,9 +26,31 @@ export default function PlaylistPrompt() {
     
     if (error) {
       console.error("Authentication error:", error)
-      toast.error("Connection failed", {
-        description: "Please try connecting again",
-        duration: 4000,
+      
+      let errorMessage = "Connection failed"
+      let errorDescription = "Please try connecting again"
+      
+      switch (error) {
+        case "user_fetch_failed":
+          errorMessage = "Could not fetch user information"
+          errorDescription = "There was a problem retrieving your Spotify account. Please try again."
+          break
+        case "token_exchange_failed":
+          errorMessage = "Authentication failed"
+          errorDescription = "Could not complete authentication. Please try again."
+          break
+        case "invalid_state":
+          errorMessage = "Security check failed"
+          errorDescription = "Please try connecting again."
+          break
+        default:
+          errorMessage = "Connection failed"
+          errorDescription = `Error: ${error}. Please try again.`
+      }
+      
+      toast.error(errorMessage, {
+        description: errorDescription,
+        duration: 5000,
       })
       window.history.replaceState({}, "", "/")
     } else if (connected === "true") {

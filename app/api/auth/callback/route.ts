@@ -43,6 +43,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
+    console.log("🔄 Exchanging authorization code for tokens...")
+    console.log("🔍 Redirect URI used:", SPOTIFY_REDIRECT_URI)
+    console.log("🔍 Code length:", code.length)
+    
     // Intercambiar el código por tokens
     const tokenResponse = await fetch("https://accounts.spotify.com/api/token", {
       method: "POST",
@@ -60,14 +64,27 @@ export async function GET(request: NextRequest) {
     })
 
     if (!tokenResponse.ok) {
-      const errorData = await tokenResponse.json()
-      console.error("Error al obtener tokens:", errorData)
+      const errorText = await tokenResponse.text()
+      let errorData
+      try {
+        errorData = JSON.parse(errorText)
+      } catch {
+        errorData = errorText
+      }
+      console.error("❌ Error exchanging code for tokens:")
+      console.error("   Status:", tokenResponse.status, tokenResponse.statusText)
+      console.error("   Error data:", errorData)
+      console.error("   Redirect URI:", SPOTIFY_REDIRECT_URI)
       return NextResponse.redirect(
         new URL("/?error=token_exchange_failed", request.url)
       )
     }
 
     const tokens = await tokenResponse.json()
+    console.log("✅ Tokens obtained successfully")
+    console.log("🔍 Access token length:", tokens.access_token?.length || 0)
+    console.log("🔍 Token type:", tokens.token_type)
+    console.log("🔍 Expires in:", tokens.expires_in)
 
     // Obtener información del usuario
     const userResponse = await fetch("https://api.spotify.com/v1/me", {
@@ -77,12 +94,20 @@ export async function GET(request: NextRequest) {
     })
 
     if (!userResponse.ok) {
+      const errorText = await userResponse.text()
+      console.error("❌ Error fetching user from Spotify:")
+      console.error("   Status:", userResponse.status, userResponse.statusText)
+      console.error("   Response:", errorText)
+      console.error("   Access token present:", !!tokens.access_token)
+      console.error("   Access token starts with:", tokens.access_token?.substring(0, 20) || "none")
+      
       return NextResponse.redirect(
         new URL("/?error=user_fetch_failed", request.url)
       )
     }
 
     const user = await userResponse.json()
+    console.log("✅ User data fetched successfully:", user.id)
 
     // Determinar configuración de cookies
     const isProduction = process.env.NODE_ENV === "production"
