@@ -3,30 +3,36 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Send, LogOut } from "lucide-react"
+import { Send, LogOut, ChevronDown } from "lucide-react"
 import { ParticlesBackground } from "@/components/particles-background"
 import { useSpotifyAuth } from "@/hooks/use-spotify-auth"
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
 
 export default function PlaylistPrompt() {
   const [prompt, setPrompt] = useState("")
   const { isAuthenticated, user, isLoading, login, logout } = useSpotifyAuth()
 
-  // Verificar si hay un error en la URL (del callback)
+  // Check if there's an error in the URL (from callback)
   useEffect(() => {
     const params = new URLSearchParams(window.location.search)
     const error = params.get("error")
     if (error) {
-      console.error("Error de autenticación:", error)
-      // Puedes mostrar un toast o mensaje de error aquí
-      // Limpiar la URL
+      console.error("Authentication error:", error)
+      // You can show a toast or error message here
+      // Clear the URL
       window.history.replaceState({}, "", "/")
     }
   }, [])
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
-    // Placeholder para futura integración con Gemini
-    console.log("Prompt enviado:", prompt)
+    // Placeholder for future Gemini integration
+    console.log("Prompt sent:", prompt)
   }
 
   return (
@@ -37,59 +43,75 @@ export default function PlaylistPrompt() {
           className="flex items-center justify-between rounded-full px-6 py-3 max-w-6xl mx-auto"
           style={{ backgroundColor: "#1DB954" }}
         >
-          {/* Logo / nombre de la app */}
+          {/* Logo / app name */}
           <div className="text-white font-sans font-semibold text-lg tracking-tight" style={{ color: "#000" }}>
             spoty
           </div>
 
-          {/* Botón de autenticación */}
+          {/* Authentication button */}
           {isLoading ? (
             <div className="px-5 py-2 text-sm text-gray-600" style={{ color: "#000" }}>
-              Cargando...
+              Loading...
             </div>
           ) : isAuthenticated && user ? (
-            <div className="flex items-center gap-3">
-              {/* Avatar del usuario */}
-              {user.images && user.images[0] ? (
-                <img
-                  src={user.images[0].url}
-                  alt={user.display_name || "Usuario"}
-                  className="w-8 h-8 rounded-full"
-                />
-              ) : (
-                <div
-                  className="w-8 h-8 rounded-full flex items-center justify-center text-xs font-semibold"
-                  style={{ backgroundColor: "#000", color: "#1DB954" }}
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button
+                  className="flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium hover:opacity-90"
+                  style={{
+                    backgroundColor: "#000",
+                    color: "#1DB954",
+                    border: "1px solid transparent",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = "0 0 12px rgba(29, 185, 84, 0.3)"
+                    e.currentTarget.style.transform = "scale(1.02)"
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = "none"
+                    e.currentTarget.style.transform = "scale(1)"
+                  }}
                 >
-                  {user.display_name?.charAt(0).toUpperCase() || "U"}
-                </div>
-              )}
-              {/* Nombre del usuario */}
-              <span className="text-sm font-medium" style={{ color: "#000" }}>
-                {user.display_name || user.email || "Usuario"}
-              </span>
-              {/* Botón de logout */}
-              <button
-                onClick={logout}
-                className="px-4 py-2 rounded-full transition-all duration-300 font-sans text-xs font-medium"
+                  {/* User avatar */}
+                  {user.images && user.images[0] ? (
+                    <img
+                      src={user.images[0].url}
+                      alt={user.display_name || "User"}
+                      className="w-7 h-7 rounded-full"
+                    />
+                  ) : (
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
+                      style={{ backgroundColor: "#1DB954", color: "#000" }}
+                    >
+                      {user.display_name?.charAt(0).toUpperCase() || "U"}
+                    </div>
+                  )}
+                  {/* Greeting and name */}
+                  <span className="text-sm font-medium" style={{ color: "#1DB954" }}>
+                    Hello, {user.display_name?.split(" ")[0] || user.email?.split("@")[0] || "User"}
+                  </span>
+                  <ChevronDown size={16} style={{ color: "#1DB954" }} />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent
+                align="end"
+                className="min-w-[180px] rounded-lg"
                 style={{
-                  backgroundColor: "#000",
-                  color: "#1DB954",
-                  border: "1px solid transparent",
+                  backgroundColor: "#1a1a1a",
+                  border: "1px solid #333",
                 }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = "0 0 12px rgba(29, 185, 84, 0.3)"
-                  e.currentTarget.style.transform = "scale(1.02)"
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = "none"
-                  e.currentTarget.style.transform = "scale(1)"
-                }}
-                title="Cerrar sesión"
               >
-                <LogOut size={16} />
-              </button>
-            </div>
+                <DropdownMenuItem
+                  onClick={logout}
+                  className="cursor-pointer focus:bg-[#1DB954] focus:text-black"
+                  style={{ color: "#fff" }}
+                >
+                  <LogOut className="mr-2 h-4 w-4" />
+                  <span>Log out</span>
+                </DropdownMenuItem>
+              </DropdownMenuContent>
+            </DropdownMenu>
           ) : (
             <button
               onClick={login}
@@ -108,23 +130,28 @@ export default function PlaylistPrompt() {
                 e.currentTarget.style.transform = "scale(1)"
               }}
             >
-              Conectar con Spotify
+              Connect with Spotify
             </button>
           )}
         </div>
       </nav>
 
-      <div className="flex-1 flex items-center justify-center relative z-10">
-        <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto px-4">
+      <div className="flex-1 flex flex-col items-center justify-center relative z-10">
+        <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center gap-4">
+          {/* Text above input */}
+          <h2 className="text-white text-2xl font-medium text-center mb-2" style={{ fontFamily: "system-ui, sans-serif" }}>
+            What do you feel like listening to today?
+          </h2>
+          
           <div
-            className="flex items-center gap-0 rounded-full transition-all duration-300"
+            className="flex items-center gap-0 rounded-full transition-all duration-300 w-full"
             style={{ backgroundColor: "#1a1a1a" }}
           >
             <input
               type="text"
               value={prompt}
               onChange={(e) => setPrompt(e.target.value)}
-              placeholder="Describí la playlist que querés…"
+              placeholder="Describe the playlist you want…"
               className="flex-1 px-6 py-4 bg-transparent text-white placeholder-gray-500 outline-none font-sans text-base"
               style={{ color: "#ffffff" }}
             />
@@ -144,7 +171,7 @@ export default function PlaylistPrompt() {
                 e.currentTarget.style.boxShadow = "none"
                 e.currentTarget.style.backgroundColor = "#1DB954"
               }}
-              aria-label="Enviar prompt"
+              aria-label="Send prompt"
             >
               <Send size={20} strokeWidth={2.5} />
             </button>
