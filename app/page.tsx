@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Send, LogOut, ChevronDown } from "lucide-react"
+import { Send, LogOut, ChevronDown, Music } from "lucide-react"
 import { ParticlesBackground } from "@/components/particles-background"
 import { useSpotifyAuth } from "@/hooks/use-spotify-auth"
 import {
@@ -12,6 +12,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
+import { toast } from "sonner"
 
 export default function PlaylistPrompt() {
   const [prompt, setPrompt] = useState("")
@@ -31,6 +32,29 @@ export default function PlaylistPrompt() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault()
+
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      toast.error("Connect to Spotify first", {
+        description: "Connect your Spotify account to create personalized playlists based on your music taste!",
+        duration: 5000,
+        action: {
+          label: "Connect now",
+          onClick: () => login(),
+        },
+        icon: <Music size={18} />,
+      })
+      return
+    }
+
+    if (!prompt.trim()) {
+      toast.error("Describe your playlist", {
+        description: "Tell us what you want to listen to!",
+        duration: 3000,
+      })
+      return
+    }
+
     // Placeholder for future Gemini integration
     console.log("Prompt sent:", prompt)
   }
