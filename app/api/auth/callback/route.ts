@@ -30,13 +30,11 @@ export async function GET(request: NextRequest) {
   const savedState = cookieStore.get("spotify_auth_state")?.value
 
   if (!savedState || savedState !== state) {
+    console.log("❌ Invalid state - saved:", savedState, "received:", state)
     return NextResponse.redirect(
       new URL("/?error=invalid_state", request.url)
     )
   }
-
-  // Eliminar el state de la cookie ya que fue usado
-  cookieStore.delete("spotify_auth_state")
 
   if (!SPOTIFY_CLIENT_ID || !SPOTIFY_CLIENT_SECRET) {
     return NextResponse.redirect(
@@ -87,12 +85,13 @@ export async function GET(request: NextRequest) {
     const user = await userResponse.json()
 
     // Determinar configuración de cookies
-    // En producción (Vercel), siempre usar HTTPS
     const isProduction = process.env.NODE_ENV === "production"
     const isSecure = isProduction || request.url.startsWith("https://")
     
-    // Crear la respuesta de redirect y establecer cookies
+    // Crear la URL de redirect usando new URL con la request.url como base
     const redirectUrl = new URL("/?connected=true", request.url)
+    
+    // Crear la respuesta de redirect
     const response = NextResponse.redirect(redirectUrl)
     
     // Configuración base para cookies
@@ -103,7 +102,7 @@ export async function GET(request: NextRequest) {
       path: "/",
     }
     
-    // Guardar tokens en cookies
+    // Establecer cookies en la respuesta ANTES de eliminar la cookie del state
     response.cookies.set("spotify_access_token", tokens.access_token, {
       ...cookieBaseOptions,
       maxAge: tokens.expires_in || 3600,
@@ -117,14 +116,19 @@ export async function GET(request: NextRequest) {
     response.cookies.set("spotify_user_id", user.id, {
       httpOnly: false,
       secure: isSecure,
-      sameSite: "lax",
+      sameSite: "lax" as const,
       path: "/",
       maxAge: 60 * 60 * 24 * 365,
     })
 
+    // Eliminar el state de la cookie ya que fue usado
+    response.cookies.delete("spotify_auth_state")
+
     console.log("✅ User authenticated:", user.id, user.display_name)
-    console.log("🔧 Cookie settings - secure:", isSecure, "production:", isProduction, "url:", request.url)
+    console.log("🔧 Cookie settings - secure:", isSecure, "production:", isProduction)
+    console.log("🔧 Redirect URL:", redirectUrl.toString())
     console.log("🍪 Cookies set: access_token, refresh_token, user_id")
+    console.log("🍪 Cookie values - access_token length:", tokens.access_token.length)
     return response
   } catch (error) {
     console.error("Error en el callback:", error)
