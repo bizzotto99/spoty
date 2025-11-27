@@ -61,7 +61,10 @@ export function useSpotifyAuth(): UseSpotifyAuthReturn {
 
   const checkAuthStatus = async (): Promise<boolean> => {
     try {
-      const response = await fetch("/api/auth/me")
+      const response = await fetch("/api/auth/me", {
+        credentials: 'include',
+        cache: 'no-store',
+      })
       const data = await response.json()
 
       if (data.authenticated && data.user) {

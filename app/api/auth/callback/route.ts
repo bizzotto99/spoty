@@ -32,7 +32,6 @@ export async function GET(request: NextRequest) {
   const savedState = cookieStore.get("spotify_auth_state")?.value
 
   if (!savedState || savedState !== state) {
-    console.log("❌ Invalid state - saved:", savedState, "received:", state)
     return NextResponse.redirect(
       new URL("/?error=invalid_state", request.url)
     )
@@ -45,10 +44,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    console.log("🔄 Exchanging authorization code for tokens...")
-    console.log("🔍 Redirect URI used:", SPOTIFY_REDIRECT_URI)
-    console.log("🔍 Code length:", code.length)
-    
     // Intercambiar el código por tokens
     const tokenResponse = await fetch("https://accounts.spotify.com/api/token", {
       method: "POST",
@@ -66,72 +61,47 @@ export async function GET(request: NextRequest) {
     })
 
     if (!tokenResponse.ok) {
-      const errorText = await tokenResponse.text()
-      let errorData
-      try {
-        errorData = JSON.parse(errorText)
-      } catch {
-        errorData = errorText
-      }
-      console.error("❌ Error exchanging code for tokens:")
-      console.error("   Status:", tokenResponse.status, tokenResponse.statusText)
-      console.error("   Error data:", errorData)
-      console.error("   Redirect URI:", SPOTIFY_REDIRECT_URI)
       return NextResponse.redirect(
         new URL("/?error=token_exchange_failed", request.url)
       )
     }
 
     const tokens = await tokenResponse.json()
-    console.log("✅ Tokens obtained successfully")
-    console.log("🔍 Access token length:", tokens.access_token?.length || 0)
-    console.log("🔍 Token type:", tokens.token_type)
-    console.log("🔍 Expires in:", tokens.expires_in)
 
-    // Obtener información del usuario
+    if (!tokens.access_token) {
+      return NextResponse.redirect(
+        new URL("/?error=no_access_token", request.url)
+      )
+    }
+
     const userResponse = await fetch("https://api.spotify.com/v1/me", {
       headers: {
         Authorization: `Bearer ${tokens.access_token}`,
       },
-      cache: 'no-store', // Desactivar caché para evitar errores antiguos
+      cache: 'no-store',
     })
 
     if (!userResponse.ok) {
-      const errorText = await userResponse.text()
-      console.error("❌ Error fetching user from Spotify:")
-      console.error("   Status:", userResponse.status, userResponse.statusText)
-      console.error("   Response:", errorText)
-      console.error("   Access token present:", !!tokens.access_token)
-      console.error("   Access token starts with:", tokens.access_token?.substring(0, 20) || "none")
-      
       return NextResponse.redirect(
         new URL("/?error=user_fetch_failed", request.url)
       )
     }
 
     const user = await userResponse.json()
-    console.log("✅ User data fetched successfully:", user.id)
 
-    // Determinar configuración de cookies
     const isProduction = process.env.NODE_ENV === "production"
     const isSecure = isProduction || request.url.startsWith("https://")
-    
-    // Crear la URL de redirect
     const redirectUrl = new URL("/?connected=true", request.url)
-    
-    // Crear la respuesta de redirect
     const response = NextResponse.redirect(redirectUrl)
     
-    // Establecer cookies en la respuesta
     const expiresInSeconds = tokens.expires_in || 3600
-    const refreshTokenMaxAge = 60 * 60 * 24 * 365 // 1 año
-    const userIdMaxAge = 60 * 60 * 24 * 365 // 1 año
+    const refreshTokenMaxAge = 60 * 60 * 24 * 365
+    const userIdMaxAge = 60 * 60 * 24 * 365
     
-    // Usar SameSite=Lax que funciona mejor con redirects
     response.cookies.set("spotify_access_token", tokens.access_token, {
       httpOnly: true,
       secure: isSecure,
-      sameSite: "lax" as const,
+      sameSite: "lax",
       path: "/",
       maxAge: expiresInSeconds,
     })
@@ -139,7 +109,7 @@ export async function GET(request: NextRequest) {
     response.cookies.set("spotify_refresh_token", tokens.refresh_token, {
       httpOnly: true,
       secure: isSecure,
-      sameSite: "lax" as const,
+      sameSite: "lax",
       path: "/",
       maxAge: refreshTokenMaxAge,
     })
@@ -147,23 +117,15 @@ export async function GET(request: NextRequest) {
     response.cookies.set("spotify_user_id", user.id, {
       httpOnly: false,
       secure: isSecure,
-      sameSite: "lax" as const,
+      sameSite: "lax",
       path: "/",
       maxAge: userIdMaxAge,
     })
 
-    // Eliminar el state de la cookie
     response.cookies.delete("spotify_auth_state")
-
-    console.log("✅ User authenticated:", user.id, user.display_name)
-    console.log("🔧 Cookie settings - secure:", isSecure, "production:", isProduction)
-    console.log("🔧 Redirect URL:", redirectUrl.toString())
-    console.log("🍪 Cookies set: access_token, refresh_token, user_id")
-    console.log("🍪 Cookie values - access_token length:", tokens.access_token.length)
     
     return response
   } catch (error) {
-    console.error("Error en el callback:", error)
     return NextResponse.redirect(
       new URL("/?error=callback_error", request.url)
     )

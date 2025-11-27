@@ -4,14 +4,8 @@ import { cookies } from "next/headers"
 export async function GET(request: NextRequest) {
   const cookieStore = await cookies()
   const accessToken = cookieStore.get("spotify_access_token")?.value
-  
-  // Debug: ver todas las cookies disponibles
-  const allCookies = cookieStore.getAll()
-  console.log("🔍 All cookies:", allCookies.map(c => c.name).join(", "))
-  console.log("🔍 Access token present:", !!accessToken)
 
   if (!accessToken) {
-    console.log("❌ No access token found in cookies")
     return NextResponse.json({ authenticated: false }, { status: 401 })
   }
 
@@ -20,19 +14,16 @@ export async function GET(request: NextRequest) {
       headers: {
         Authorization: `Bearer ${accessToken}`,
       },
-      cache: 'no-store', // Desactivar caché para evitar errores antiguos
+      cache: 'no-store',
     })
 
     if (!response.ok) {
-      console.log("❌ Spotify API error:", response.status, response.statusText)
       return NextResponse.json({ authenticated: false }, { status: 401 })
     }
 
     const user = await response.json()
-    console.log("✅ User verified:", user.id, user.display_name)
     return NextResponse.json({ authenticated: true, user })
   } catch (error) {
-    console.error("❌ Error al obtener usuario:", error)
     return NextResponse.json({ authenticated: false }, { status: 500 })
   }
 }
