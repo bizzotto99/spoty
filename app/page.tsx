@@ -67,9 +67,13 @@ export default function PlaylistPrompt() {
           className="flex items-center justify-between rounded-full px-6 py-3 max-w-6xl mx-auto"
           style={{ backgroundColor: "#1DB954" }}
         >
-          {/* Logo / app name */}
-          <div className="text-white font-sans font-semibold text-lg tracking-tight" style={{ color: "#000" }}>
-            spoty
+          {/* Logo */}
+          <div className="flex items-center">
+            <img 
+              src="/logo.png" 
+              alt="Spoty" 
+              className="h-8 w-auto"
+            />
           </div>
 
           {/* Authentication button */}
