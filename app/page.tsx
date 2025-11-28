@@ -434,12 +434,16 @@ export default function PlaylistPrompt() {
             <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
               {/* Cuadrado de playlist (como Spotify) */}
               <div
-                className="w-full sm:w-64 h-64 rounded-lg flex-shrink-0 flex items-center justify-center shadow-2xl"
+                className="w-full sm:w-64 h-64 rounded-lg flex-shrink-0 flex items-center justify-center shadow-2xl overflow-hidden"
                 style={{
-                  background: "linear-gradient(135deg, #1DB954 0%, #1ed760 100%)",
+                  backgroundColor: "#1DB954",
                 }}
               >
-                <Music className="w-24 h-24 text-black opacity-80" />
+                <img
+                  src="/icon.png"
+                  alt="Playlist"
+                  className="w-full h-full object-cover"
+                />
               </div>
 
               {/* Información de la playlist */}
