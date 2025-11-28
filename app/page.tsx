@@ -30,6 +30,7 @@ interface Track {
   image: string
   duration_ms: number
   preview_url?: string
+  uri?: string
 }
 
 type FlowState = 'idle' | 'loading' | 'preview' | 'creating' | 'success'
@@ -91,56 +92,29 @@ export default function PlaylistPrompt() {
     }
   }, [])
 
-  // Mock function para generar canciones (sin Gemini todavía)
-  const generateTracks = async (promptText: string): Promise<Track[]> => {
-    // Simular delay de API
-    await new Promise(resolve => setTimeout(resolve, 2000))
+  // Generate tracks using Gemini and Spotify API
+  const generateTracks = async (promptText: string): Promise<{ tracks: Track[]; playlistName: string; description: string }> => {
+    const response = await fetch("/api/generate-playlist", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ prompt: promptText }),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || "Error generating playlist")
+    }
+
+    const data = await response.json()
     
-    // Mock tracks basados en el prompt
-    const mockTracks: Track[] = [
-      {
-        id: "1",
-        name: "Song 1",
-        artist: "Artist 1",
-        album: "Album 1",
-        image: "https://via.placeholder.com/300/1DB954/000000?text=Album+1",
-        duration_ms: 180000,
-      },
-      {
-        id: "2",
-        name: "Song 2",
-        artist: "Artist 2",
-        album: "Album 2",
-        image: "https://via.placeholder.com/300/1DB954/000000?text=Album+2",
-        duration_ms: 210000,
-      },
-      {
-        id: "3",
-        name: "Song 3",
-        artist: "Artist 3",
-        album: "Album 3",
-        image: "https://via.placeholder.com/300/1DB954/000000?text=Album+3",
-        duration_ms: 195000,
-      },
-      {
-        id: "4",
-        name: "Song 4",
-        artist: "Artist 4",
-        album: "Album 4",
-        image: "https://via.placeholder.com/300/1DB954/000000?text=Album+4",
-        duration_ms: 220000,
-      },
-      {
-        id: "5",
-        name: "Song 5",
-        artist: "Artist 5",
-        album: "Album 5",
-        image: "https://via.placeholder.com/300/1DB954/000000?text=Album+5",
-        duration_ms: 200000,
-      },
-    ]
-    
-    return mockTracks
+    return {
+      tracks: data.tracks,
+      playlistName: data.playlistName,
+      description: data.description || "",
+    }
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -181,23 +155,21 @@ export default function PlaylistPrompt() {
     }, 500)
     
     try {
-      // Generar canciones (mock por ahora)
-      const generatedTracks = await generateTracks(prompt)
+      // Generar canciones usando Gemini y Spotify
+      const result = await generateTracks(prompt)
       clearInterval(messageInterval)
       
-      setTracks(generatedTracks)
-      
-      // Generar nombre de playlist basado en el prompt
-      const generatedName = prompt.length > 30 ? prompt.substring(0, 30) + "..." : prompt
-      setPlaylistName(generatedName)
+      setTracks(result.tracks)
+      setPlaylistName(result.playlistName)
       
       // Paso 2: Preview
       setFlowState('preview')
     } catch (error) {
       clearInterval(messageInterval)
+      const errorMessage = error instanceof Error ? error.message : "Please try again"
       toast.error("Error generating playlist", {
-        description: "Please try again",
-        duration: 3000,
+        description: errorMessage,
+        duration: 5000,
       })
       setFlowState('idle')
     }
@@ -208,19 +180,37 @@ export default function PlaylistPrompt() {
     setFlowState('creating')
     
     try {
-      // Simular creación de playlist en Spotify
-      await new Promise(resolve => setTimeout(resolve, 1500))
-      
-      // Mock URL de playlist
-      const mockPlaylistUrl = "https://open.spotify.com/playlist/mock123"
-      setPlaylistUrl(mockPlaylistUrl)
+      // Crear playlist en Spotify
+      const response = await fetch("/api/create-playlist", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          name: playlistName || "My Playlist",
+          description: "",
+          tracks: tracks.map(track => ({
+            uri: track.uri || `spotify:track:${track.id}`,
+          })),
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Error creating playlist")
+      }
+
+      const data = await response.json()
+      setPlaylistUrl(data.playlistUrl)
       
       // Paso 4: Éxito
       setFlowState('success')
     } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Please try again"
       toast.error("Error creating playlist", {
-        description: "Please try again",
-        duration: 3000,
+        description: errorMessage,
+        duration: 5000,
       })
       setFlowState('preview')
     }
@@ -228,10 +218,17 @@ export default function PlaylistPrompt() {
 
   const handleRegenerate = () => {
     setFlowState('loading')
-    generateTracks(prompt).then((generatedTracks) => {
-      setTracks(generatedTracks)
+    setLoadingMessage("Regenerating playlist...")
+    generateTracks(prompt).then((result) => {
+      setTracks(result.tracks)
+      setPlaylistName(result.playlistName)
       setFlowState('preview')
-    }).catch(() => {
+    }).catch((error) => {
+      const errorMessage = error instanceof Error ? error.message : "Please try again"
+      toast.error("Error regenerating playlist", {
+        description: errorMessage,
+        duration: 5000,
+      })
       setFlowState('idle')
     })
   }
@@ -564,6 +561,24 @@ export default function PlaylistPrompt() {
                       <p className="text-white font-medium text-sm truncate">{track.name}</p>
                       <p className="text-gray-400 text-xs truncate">{track.artist}</p>
                     </div>
+                    {track.preview_url && (
+                      <audio
+                        controls
+                        className="h-8 max-w-[200px]"
+                        preload="none"
+                        onPlay={(e) => {
+                          // Pausar otros audios cuando se reproduce uno
+                          document.querySelectorAll('audio').forEach((audio) => {
+                            if (audio !== e.currentTarget) {
+                              audio.pause()
+                            }
+                          })
+                        }}
+                      >
+                        <source src={track.preview_url} type="audio/mpeg" />
+                        Your browser does not support the audio element.
+                      </audio>
+                    )}
                     <div className="text-gray-500 text-xs">
                       {Math.floor(track.duration_ms / 60000)}:{(Math.floor((track.duration_ms % 60000) / 1000)).toString().padStart(2, '0')}
                     </div>
