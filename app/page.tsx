@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Send, LogOut, ChevronDown, Music, Loader2, CheckCircle2, ExternalLink, RefreshCw, Edit2, Save } from "lucide-react"
+import { Send, LogOut, ChevronDown, Music, Loader2, CheckCircle2, ExternalLink, RefreshCw, Edit2, Save, HelpCircle } from "lucide-react"
 import { ParticlesBackground } from "@/components/particles-background"
 import { useSpotifyAuth } from "@/hooks/use-spotify-auth"
 import {
@@ -398,6 +398,54 @@ export default function PlaylistPrompt() {
                 <Send size={20} strokeWidth={2.5} />
               </button>
             </div>
+
+            {isAuthenticated && (
+              <div className="w-full mt-4">
+                <div className="flex items-center gap-2 mb-3">
+                  <HelpCircle className="w-4 h-4" style={{ color: "#1DB954" }} />
+                  <p className="text-gray-400 text-sm">Tips para mejores resultados</p>
+                </div>
+                
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(29, 185, 84, 0.1)" }}>
+                        <Music className="w-4 h-4" style={{ color: "#1DB954" }} />
+                      </div>
+                      <p className="text-white text-sm font-medium">Actividad</p>
+                    </div>
+                    <p className="text-gray-400 text-xs">correr, estudiar, trabajar, relajarte...</p>
+                  </div>
+                  
+                  <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(29, 185, 84, 0.1)" }}>
+                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#1DB954" }} />
+                      </div>
+                      <p className="text-white text-sm font-medium">Intensidad</p>
+                    </div>
+                    <p className="text-gray-400 text-xs">alta, relajada, media, energética...</p>
+                  </div>
+                  
+                  <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+                    <div className="flex items-center gap-2 mb-2">
+                      <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(29, 185, 84, 0.1)" }}>
+                        <div className="w-4 h-4 border-2 rounded" style={{ borderColor: "#1DB954" }} />
+                      </div>
+                      <p className="text-white text-sm font-medium">Tiempo</p>
+                    </div>
+                    <p className="text-gray-400 text-xs">30 min, 1 hora, 2 horas, toda la tarde...</p>
+                  </div>
+                </div>
+                
+                <div className="mt-3 p-3 rounded-xl" style={{ backgroundColor: "rgba(29, 185, 84, 0.05)", border: "1px solid rgba(29, 185, 84, 0.2)" }}>
+                  <p className="text-gray-400 text-xs mb-1.5">💡 Ejemplo:</p>
+                  <p className="text-white text-sm italic" style={{ color: "#1DB954" }}>
+                    "Una playlist para ir a jugar al fútbol de aprox 45 minutos, con canciones de mundiales"
+                  </p>
+                </div>
+              </div>
+            )}
           </form>
         )}
 
