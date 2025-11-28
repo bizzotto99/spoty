@@ -24,6 +24,31 @@ export function useSpotifyAuth(): UseSpotifyAuthReturn {
 
   // Verificar estado de autenticación al cargar
   useEffect(() => {
+    // Modo de desarrollo: simular usuario autenticado
+    // Solo funciona en localhost para desarrollo
+    const isDevelopment = typeof window !== "undefined" && 
+      (window.location.hostname === "localhost" || 
+       window.location.hostname === "127.0.0.1")
+    
+    const isMockMode = isDevelopment && 
+      (window.location.search.includes("mock=true") || 
+       localStorage.getItem("spoty_mock_mode") === "true")
+
+    // Si está en modo mock, simular usuario
+    if (isMockMode) {
+      setIsAuthenticated(true)
+      setUser({
+        id: "mock_user_123",
+        display_name: "Mock User",
+        email: "mock@example.com",
+        images: [{
+          url: "https://via.placeholder.com/300/1DB954/000000?text=User"
+        }]
+      })
+      setIsLoading(false)
+      return
+    }
+
     // Si estamos volviendo del callback, hacer múltiples intentos
     const isReturningFromCallback = typeof window !== "undefined" && 
       window.location.search.includes("connected=true")
@@ -88,11 +113,41 @@ export function useSpotifyAuth(): UseSpotifyAuthReturn {
   }
 
   const login = () => {
+    // En modo mock, activar mock mode (solo en desarrollo)
+    const isDevelopment = typeof window !== "undefined" && 
+      (window.location.hostname === "localhost" || 
+       window.location.hostname === "127.0.0.1")
+    
+    const isMockMode = isDevelopment && 
+      (window.location.search.includes("mock=true") || 
+       localStorage.getItem("spoty_mock_mode") === "true")
+    
+    if (isMockMode) {
+      localStorage.setItem("spoty_mock_mode", "true")
+      window.location.reload()
+      return
+    }
     // Redirigir al endpoint de login que iniciará el flujo OAuth
     window.location.href = "/api/auth/login"
   }
 
   const logout = async () => {
+    // En modo mock, desactivar mock mode (solo en desarrollo)
+    const isDevelopment = typeof window !== "undefined" && 
+      (window.location.hostname === "localhost" || 
+       window.location.hostname === "127.0.0.1")
+    
+    const isMockMode = isDevelopment && 
+      (window.location.search.includes("mock=true") || 
+       localStorage.getItem("spoty_mock_mode") === "true")
+    
+    if (isMockMode) {
+      localStorage.removeItem("spoty_mock_mode")
+      setIsAuthenticated(false)
+      setUser(null)
+      window.location.reload()
+      return
+    }
     try {
       await fetch("/api/auth/logout", { method: "POST" })
       setIsAuthenticated(false)
