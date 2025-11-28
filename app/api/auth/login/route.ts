@@ -1,7 +1,7 @@
 import { NextResponse } from "next/server"
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID
-const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || "http://localhost:3000/api/auth/callback"
+const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || "https://spoty-three.vercel.app/api/auth/callback"
 const SPOTIFY_SCOPES = [
   "user-read-private",
   "user-read-email",
@@ -36,8 +36,8 @@ export async function GET() {
   )
 
   // Guardar el state en una cookie httpOnly
-  const isProduction = process.env.NODE_ENV === "production"
-  const isSecure = isProduction
+  // Siempre usar secure si estamos en HTTPS (producción o previews en Vercel)
+  const isSecure = process.env.NODE_ENV === "production" || process.env.VERCEL === "1"
   
   response.cookies.set("spotify_auth_state", state, {
     httpOnly: true,

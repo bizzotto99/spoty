@@ -30,8 +30,6 @@ Guía única para configurar la aplicación desde cero hasta producción.
 3. Agrega: `https://spoty-three.vercel.app/api/auth/callback`
 4. Guarda los cambios
 
-⚠️ **Nota sobre la advertencia "URL no segura"**: Si ves una advertencia al usar `http://localhost`, es normal para desarrollo local. Puedes ignorarla.
-
 ---
 
 ## 📋 Paso 2: Configurar Variables de Entorno
@@ -50,6 +48,7 @@ SPOTIFY_REDIRECT_URI=https://spoty-three.vercel.app/api/auth/callback
 - Reemplaza los valores con tus credenciales reales
 - El archivo `.env.local` NO debe subirse a Git (ya está en `.gitignore`)
 - Reinicia el servidor después de crear/modificar este archivo
+- Solo usamos la URL de producción: `https://spoty-three.vercel.app/api/auth/callback`
 
 ### Para Producción en Vercel
 
@@ -94,14 +93,6 @@ SPOTIFY_REDIRECT_URI=https://spoty-three.vercel.app/api/auth/callback
 ---
 
 ## ✅ Verificación
-
-### Desarrollo Local
-
-1. Asegúrate de tener `.env.local` configurado
-2. Ejecuta: `npm run dev`
-3. Ve a `http://localhost:3000`
-4. Haz clic en **"Conectar con Spotify"**
-5. Deberías ser redirigido a Spotify para autorizar
 
 ### Producción
 
@@ -163,4 +154,5 @@ Después de configurar la autenticación:
 **¿Problemas?** Revisa los logs en:
 - Terminal (desarrollo local)
 - Vercel Dashboard → Deployments → Tu deployment → Functions (producción)
+
 

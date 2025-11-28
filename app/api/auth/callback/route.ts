@@ -5,7 +5,7 @@ import { cookies } from "next/headers"
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID
 const SPOTIFY_CLIENT_SECRET = process.env.SPOTIFY_CLIENT_SECRET
-const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || "http://localhost:3000/api/auth/callback"
+const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || "https://spoty-three.vercel.app/api/auth/callback"
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams
@@ -89,9 +89,13 @@ export async function GET(request: NextRequest) {
 
     const user = await userResponse.json()
 
+    // Determinar configuración de cookies y dominio
     const isProduction = process.env.NODE_ENV === "production"
     const isSecure = isProduction || request.url.startsWith("https://")
-    const redirectUrl = new URL("/?connected=true", request.url)
+    
+    // Construir URL de redirección usando el origen de la petición
+    const origin = new URL(request.url).origin
+    const redirectUrl = new URL("/?connected=true", origin)
     const response = NextResponse.redirect(redirectUrl)
     
     const expiresInSeconds = tokens.expires_in || 3600
