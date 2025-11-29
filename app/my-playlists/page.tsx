@@ -96,7 +96,7 @@ export default function MyPlaylistsPage() {
           {/* Header */}
           <div className="mb-8">
             <button
-              onClick={() => router.push("/")}
+              onClick={() => router.back()}
               className="flex items-center gap-2 mb-6 text-gray-400 hover:text-white transition-colors"
             >
               <ArrowLeft size={20} />
@@ -168,12 +168,12 @@ export default function MyPlaylistsPage() {
                   {/* Playlist Image */}
                   <div className="relative mb-4 aspect-square rounded-lg overflow-hidden shadow-lg">
                     <img
-                      src={playlist.image}
+                      src="/playlist.png"
                       alt={playlist.name}
                       className="w-full h-full object-cover"
                       onError={(e) => {
                         const target = e.target as HTMLImageElement
-                        target.src = "/icon.png"
+                        target.src = "/playlist.png"
                       }}
                     />
                     {/* Overlay on hover */}

@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Send, LogOut, ChevronDown, Music, Loader2, CheckCircle2, ExternalLink, RefreshCw, Edit2, Save, HelpCircle, ListMusic } from "lucide-react"
+import { Send, LogOut, ChevronDown, Music, Loader2, CheckCircle2, ExternalLink, RefreshCw, Edit2, Save, HelpCircle, ListMusic, ArrowLeft } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { ParticlesBackground } from "@/components/particles-background"
 import { useSpotifyAuth } from "@/hooks/use-spotify-auth"
@@ -516,42 +516,17 @@ export default function PlaylistPrompt() {
             <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
               {/* Cuadrado de playlist (como Spotify) */}
               <div className="w-full sm:w-72 h-72 rounded-lg flex-shrink-0 shadow-2xl overflow-hidden" style={{ backgroundColor: "#1a1a1a" }}>
-                {tracks.length > 0 ? (
-                  <div className="w-full h-full grid grid-cols-2 grid-rows-2">
-                    {[0, 1, 2, 3].map((index) => (
-                      <div key={index} className="w-full h-full overflow-hidden">
-                        {tracks[index]?.image ? (
-                          <img
-                            src={tracks[index].image}
-                            alt={tracks[index].name}
-                            className="w-full h-full object-cover"
-                            onError={(e) => {
-                              const target = e.target as HTMLImageElement;
-                              target.style.display = "none";
-                              target.parentElement!.style.backgroundColor = "#1a1a1a";
-                            }}
-                          />
-                        ) : (
-                          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: "#1a1a1a" }}>
-                            <Music className="w-8 h-8" style={{ color: "#333" }} />
-                          </div>
-                        )}
-                      </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="w-full h-full flex items-center justify-center">
-                    <img
-                      src="/icon.png"
-                      alt="Playlist"
-                      className="w-full h-full object-cover brightness-110"
-                      onError={(e) => {
-                        const target = e.target as HTMLImageElement;
-                        target.src = "/icon.png";
-                      }}
-                    />
-                  </div>
-                )}
+                <div className="w-full h-full flex items-center justify-center">
+                  <img
+                    src="/playlist.png"
+                    alt="Playlist"
+                    className="w-full h-full object-cover"
+                    onError={(e) => {
+                      const target = e.target as HTMLImageElement;
+                      target.src = "/playlist.png";
+                    }}
+                  />
+                </div>
               </div>
 
               {/* Información de la playlist */}

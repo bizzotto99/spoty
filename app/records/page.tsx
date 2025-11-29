@@ -2,7 +2,8 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { LogOut, ChevronDown, Send, Music, HelpCircle } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { LogOut, ChevronDown, Send, Music, HelpCircle, ArrowLeft } from "lucide-react"
 import { ParticlesBackground } from "@/components/particles-background"
 import { useSpotifyAuth } from "@/hooks/use-spotify-auth"
 import {
@@ -24,6 +25,7 @@ import { toast } from "sonner"
 export default function RecordsPage() {
   const [showConnectModal, setShowConnectModal] = useState(false)
   const { isAuthenticated, user, isLoading, login, logout } = useSpotifyAuth()
+  const router = useRouter()
 
   // Check if there's an error or success in the URL (from callback)
   useEffect(() => {
@@ -188,13 +190,31 @@ export default function RecordsPage() {
         </div>
       </nav>
 
-      <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-8">
-        {isLoading ? (
-          <div className="text-center">
-            <p className="text-gray-400 text-lg">Loading...</p>
+      <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-8 px-4">
+        <div className="w-full max-w-4xl mx-auto">
+          {/* Back Button */}
+          <div className="mb-6">
+            <button
+              onClick={() => {
+                if (window.history.length > 1) {
+                  router.back()
+                } else {
+                  router.push("/")
+                }
+              }}
+              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft size={20} />
+              <span className="text-sm font-medium">Back</span>
+            </button>
           </div>
-        ) : !isAuthenticated ? (
-          <div className="text-center">
+          
+          {isLoading ? (
+            <div className="text-center">
+              <p className="text-gray-400 text-lg">Loading...</p>
+            </div>
+          ) : !isAuthenticated ? (
+            <div className="text-center">
             <div className="flex items-center justify-center gap-4 mb-4">
               <h1 className="text-white text-5xl font-bold tracking-tight" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
                 Records
@@ -317,6 +337,7 @@ export default function RecordsPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Modal de conexión */}

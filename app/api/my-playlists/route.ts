@@ -54,9 +54,7 @@ export async function GET(request: NextRequest) {
               spotify_playlist_id: playlist.spotify_playlist_id,
               name: spotifyData.name,
               description: spotifyData.description || "",
-              image: spotifyData.images && spotifyData.images.length > 0 
-                ? spotifyData.images[0].url 
-                : "/icon.png",
+              image: "/playlist.png",
               tracks_count: spotifyData.tracks?.total || 0,
               external_url: spotifyData.external_urls?.spotify || "",
               created_at: playlist.created_at,
@@ -68,7 +66,7 @@ export async function GET(request: NextRequest) {
               spotify_playlist_id: playlist.spotify_playlist_id,
               name: "Unknown Playlist",
               description: "",
-              image: "/icon.png",
+              image: "/playlist.png",
               tracks_count: 0,
               external_url: "",
               created_at: playlist.created_at,
@@ -81,7 +79,7 @@ export async function GET(request: NextRequest) {
             spotify_playlist_id: playlist.spotify_playlist_id,
             name: "Unknown Playlist",
             description: "",
-            image: "/icon.png",
+            image: "/playlist.png",
             tracks_count: 0,
             external_url: "",
             created_at: playlist.created_at,
