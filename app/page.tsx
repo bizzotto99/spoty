@@ -415,9 +415,6 @@ export default function PlaylistPrompt() {
               smart playlisting in-house
             </span>
           )}
-          <h2 className="text-white text-2xl font-medium text-center mb-2" style={{ fontFamily: "system-ui, sans-serif" }}>
-            What do you feel like listening to today?
-          </h2>
           
           <div
             className="flex items-center gap-0 rounded-full transition-all duration-300 w-full"
