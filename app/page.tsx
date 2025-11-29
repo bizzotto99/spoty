@@ -360,23 +360,6 @@ export default function PlaylistPrompt() {
             </DropdownMenu>
           ) : (
             <div className="flex items-center gap-4">
-              {/* Link Records */}
-              <a
-                href="/records"
-                className="px-4 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium hover:opacity-90"
-                style={{
-                  color: "#000",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.opacity = "0.8"
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.opacity = "1"
-                }}
-              >
-                Records
-              </a>
-              
               {/* Connect button */}
               <button
                 onClick={login}
@@ -405,18 +388,33 @@ export default function PlaylistPrompt() {
       <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-8">
         {flowState === 'idle' && (
         <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center gap-4">
-          <span 
-            className="text-5xl mb-8"
-            style={{ 
-              color: "#ffffff",
-              fontFamily: "var(--font-playfair), 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif",
-              fontWeight: 400,
-              letterSpacing: "0.15em",
-              fontStyle: "italic",
-            }}
-          >
-            Records
-          </span>
+          {isAuthenticated ? (
+            <span 
+              className="text-5xl mb-8"
+              style={{ 
+                color: "#ffffff",
+                fontFamily: "var(--font-playfair), 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif",
+                fontWeight: 400,
+                letterSpacing: "0.15em",
+                fontStyle: "italic",
+              }}
+            >
+              Records
+            </span>
+          ) : (
+            <span 
+              className="text-5xl mb-8 text-center"
+              style={{ 
+                color: "#ffffff",
+                fontFamily: "var(--font-playfair), 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif",
+                fontWeight: 400,
+                letterSpacing: "0.15em",
+                fontStyle: "italic",
+              }}
+            >
+              smart playlisting in-house
+            </span>
+          )}
           <h2 className="text-white text-2xl font-medium text-center mb-2" style={{ fontFamily: "system-ui, sans-serif" }}>
             What do you feel like listening to today?
           </h2>
