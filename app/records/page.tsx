@@ -234,7 +234,7 @@ export default function RecordsPage() {
               </DropdownMenu>
             ) : (
               <button
-                onClick={login}
+                onClick={() => login("/records")}
                 className="px-5 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium hover:opacity-90"
                 style={{
                   backgroundColor: "#000",
