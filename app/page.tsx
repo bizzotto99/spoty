@@ -4,7 +4,6 @@ import type React from "react"
 
 import { useState, useEffect } from "react"
 import { Send, LogOut, ChevronDown, Music, Loader2, CheckCircle2, ExternalLink, RefreshCw, Edit2, Save, HelpCircle } from "lucide-react"
-import Link from "next/link"
 import { ParticlesBackground } from "@/components/particles-background"
 import { useSpotifyAuth } from "@/hooks/use-spotify-auth"
 import {
@@ -295,30 +294,8 @@ export default function PlaylistPrompt() {
             />
           </a>
 
-          {/* Navigation and Auth */}
-          <div className="flex items-center gap-4">
-            {/* Records link - solo si está autenticado */}
-            {isAuthenticated && user && (
-              <Link
-                href="/records"
-                className="px-4 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium hover:opacity-90"
-                style={{
-                  backgroundColor: "transparent",
-                  color: "#000",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.textDecoration = "underline"
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.textDecoration = "none"
-                }}
-              >
-                Records
-              </Link>
-            )}
-
-            {/* Authentication button */}
-            {isLoading ? (
+          {/* Authentication button */}
+          {isLoading ? (
             <div className="px-5 py-2 text-sm text-gray-600" style={{ color: "#000" }}>
               Loading...
             </div>
@@ -382,27 +359,46 @@ export default function PlaylistPrompt() {
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
-            <button
-              onClick={login}
-              className="px-5 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
-              style={{
-                backgroundColor: "#000",
-                color: "#1DB954",
-                border: "1px solid transparent",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.boxShadow = "0 0 12px rgba(29, 185, 84, 0.3)"
-                e.currentTarget.style.transform = "scale(1.02)"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.boxShadow = "none"
-                e.currentTarget.style.transform = "scale(1)"
-              }}
-            >
-              Connect with Spotify
-            </button>
+            <div className="flex items-center gap-4">
+              {/* Link Records */}
+              <a
+                href="/records"
+                className="px-4 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium hover:opacity-90"
+                style={{
+                  color: "#000",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.opacity = "0.8"
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.opacity = "1"
+                }}
+              >
+                Records
+              </a>
+              
+              {/* Connect button */}
+              <button
+                onClick={login}
+                className="px-5 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
+                style={{
+                  backgroundColor: "#000",
+                  color: "#1DB954",
+                  border: "1px solid transparent",
+                }}
+                onMouseEnter={(e) => {
+                  e.currentTarget.style.boxShadow = "0 0 12px rgba(29, 185, 84, 0.3)"
+                  e.currentTarget.style.transform = "scale(1.02)"
+                }}
+                onMouseLeave={(e) => {
+                  e.currentTarget.style.boxShadow = "none"
+                  e.currentTarget.style.transform = "scale(1)"
+                }}
+              >
+                Connect with Spotify
+              </button>
+            </div>
           )}
-          </div>
         </div>
       </nav>
 

@@ -11,10 +11,75 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
-import Link from "next/link"
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { toast } from "sonner"
 
 export default function RecordsPage() {
-  const { isAuthenticated, user, isLoading, logout } = useSpotifyAuth()
+  const [showConnectModal, setShowConnectModal] = useState(false)
+  const { isAuthenticated, user, isLoading, login, logout } = useSpotifyAuth()
+
+  // Check if there's an error or success in the URL (from callback)
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search)
+    const error = params.get("error")
+    const connected = params.get("connected")
+    
+    if (error) {
+      console.error("Authentication error:", error)
+      
+      let errorMessage = "Connection failed"
+      let errorDescription = "Please try connecting again"
+      
+      switch (error) {
+        case "user_fetch_failed":
+          errorMessage = "Could not fetch user information"
+          errorDescription = "There was a problem retrieving your Spotify account. Please try again."
+          break
+        case "token_exchange_failed":
+          errorMessage = "Authentication failed"
+          errorDescription = "Could not complete authentication. Please try again."
+          break
+        case "invalid_state":
+          errorMessage = "Security check failed"
+          errorDescription = "Please try connecting again."
+          break
+        default:
+          errorMessage = "Connection failed"
+          errorDescription = `Error: ${error}. Please try again.`
+      }
+      
+      toast.error(errorMessage, {
+        description: errorDescription,
+        duration: 5000,
+      })
+      window.history.replaceState({}, "", "/records")
+    } else if (connected === "true") {
+      window.history.replaceState({}, "", "/records")
+      toast.success("Connected!", {
+        description: "Your Spotify account is now connected",
+        duration: 2000,
+      })
+    }
+  }, [])
+
+  // Verificar autenticación al cargar
+  useEffect(() => {
+    if (!isLoading && !isAuthenticated) {
+      setShowConnectModal(true)
+    }
+  }, [isLoading, isAuthenticated])
+
+  const handleConnect = () => {
+    setShowConnectModal(false)
+    login()
+  }
 
   return (
     <main className="min-h-screen w-full flex flex-col relative" style={{ backgroundColor: "#000" }}>
@@ -25,25 +90,25 @@ export default function RecordsPage() {
           style={{ backgroundColor: "#1DB954" }}
         >
           {/* Logo */}
-          <Link href="/" className="flex items-center cursor-pointer transition-opacity duration-300 hover:opacity-80">
+          <a href="/" className="flex items-center cursor-pointer transition-opacity duration-300 hover:opacity-80">
             <img 
               src="/logo.png" 
               alt="Spoty" 
               className="h-10 w-auto"
             />
-          </Link>
+          </a>
 
-          {/* Records title - en dorado */}
+          {/* Records text */}
           <div className="flex items-center gap-4">
-            <h1 
-              className="text-xl font-semibold"
+            <span 
+              className="text-lg font-semibold"
               style={{ 
                 color: "#FFD700", // Dorado
                 textShadow: "0 0 10px rgba(255, 215, 0, 0.5)",
               }}
             >
               Records
-            </h1>
+            </span>
 
             {/* Authentication button */}
             {isLoading ? (
@@ -110,13 +175,13 @@ export default function RecordsPage() {
                 </DropdownMenuContent>
               </DropdownMenu>
             ) : (
-              <Link
-                href="/"
-                className="px-5 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
+              <button
+                onClick={login}
+                className="px-5 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium hover:opacity-90"
                 style={{
                   backgroundColor: "#000",
                   color: "#1DB954",
-                  border: "1px solid transparent",
+                  border: "1px solid #1DB954",
                 }}
                 onMouseEnter={(e) => {
                   e.currentTarget.style.boxShadow = "0 0 12px rgba(29, 185, 84, 0.3)"
@@ -128,23 +193,84 @@ export default function RecordsPage() {
                 }}
               >
                 Connect with Spotify
-              </Link>
+              </button>
             )}
           </div>
         </div>
       </nav>
 
-      {/* Contenido de Records */}
       <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-8">
-        <div className="w-full max-w-4xl mx-auto px-4">
-          <h2 className="text-white text-3xl font-bold text-center mb-8">
-            Your Records
-          </h2>
-          <p className="text-gray-400 text-center">
-            This is where your playlist records will appear.
-          </p>
-        </div>
+        {!isAuthenticated ? (
+          <div className="text-center">
+            <h1 className="text-white text-3xl font-semibold mb-4">Records</h1>
+            <p className="text-gray-400 text-lg">Connect with Spotify to view your records</p>
+          </div>
+        ) : (
+          <div className="text-center">
+            <h1 className="text-white text-3xl font-semibold mb-4">Records</h1>
+            <p className="text-gray-400 text-lg">Your playlist records will appear here</p>
+            {/* Aquí irá el contenido de records cuando esté implementado */}
+          </div>
+        )}
       </div>
+
+      {/* Modal de conexión */}
+      <Dialog open={showConnectModal} onOpenChange={setShowConnectModal}>
+        <DialogContent
+          className="sm:max-w-md rounded-2xl"
+          showCloseButton={false}
+          style={{
+            backgroundColor: "#1a1a1a",
+            border: "1px solid #333",
+            borderRadius: "1.5rem",
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl font-semibold">
+              Connect with Spotify
+            </DialogTitle>
+            <DialogDescription className="text-gray-400 pt-2">
+              You need to connect your Spotify account to access Records
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="gap-3" style={{ gap: "1rem" }}>
+            <button
+              onClick={() => setShowConnectModal(false)}
+              className="px-6 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
+              style={{
+                backgroundColor: "transparent",
+                color: "#fff",
+                border: "1px solid #333",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#2a2a2a"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent"
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={handleConnect}
+              className="px-6 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
+              style={{
+                backgroundColor: "#1DB954",
+                color: "#000",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#1ed760"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#1DB954"
+              }}
+            >
+              Connect
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </main>
   )
 }
