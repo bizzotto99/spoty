@@ -98,19 +98,8 @@ export default function RecordsPage() {
             />
           </a>
 
-          {/* Records text */}
+          {/* Authentication button */}
           <div className="flex items-center gap-4">
-            <span 
-              className="text-lg font-semibold"
-              style={{ 
-                color: "#FFD700", // Dorado
-                textShadow: "0 0 10px rgba(255, 215, 0, 0.5)",
-              }}
-            >
-              Records
-            </span>
-
-            {/* Authentication button */}
             {isLoading ? (
               <div className="px-5 py-2 text-sm text-gray-600" style={{ color: "#000" }}>
                 Loading...
@@ -195,19 +184,50 @@ export default function RecordsPage() {
                 Connect with Spotify
               </button>
             )}
-          </div>
         </div>
       </nav>
 
       <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-8">
         {!isAuthenticated ? (
           <div className="text-center">
-            <h1 className="text-white text-3xl font-semibold mb-4">Records</h1>
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <h1 className="text-white text-5xl font-bold tracking-tight" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+                Records
+              </h1>
+              <span 
+                className="text-5xl"
+                style={{ 
+                  color: "#ffffff",
+                  fontFamily: "var(--font-playfair), 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif",
+                  fontWeight: 300,
+                  letterSpacing: "0.15em",
+                  fontStyle: "italic",
+                }}
+              >
+                Records
+              </span>
+            </div>
             <p className="text-gray-400 text-lg">Connect with Spotify to view your records</p>
           </div>
         ) : (
           <div className="text-center">
-            <h1 className="text-white text-3xl font-semibold mb-4">Records</h1>
+            <div className="flex items-center justify-center gap-4 mb-4">
+              <h1 className="text-white text-5xl font-bold tracking-tight" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+                Records
+              </h1>
+              <span 
+                className="text-5xl"
+                style={{ 
+                  color: "#ffffff",
+                  fontFamily: "var(--font-playfair), 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif",
+                  fontWeight: 300,
+                  letterSpacing: "0.15em",
+                  fontStyle: "italic",
+                }}
+              >
+                Records
+              </span>
+            </div>
             <p className="text-gray-400 text-lg">Your playlist records will appear here</p>
             {/* Aquí irá el contenido de records cuando esté implementado */}
           </div>
