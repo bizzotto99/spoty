@@ -73,10 +73,9 @@ export async function searchDalePlayTracks(
               )
               const albumDetails = await albumDetailsRes.json()
               
-              // Verificar que el label sea "Dale Play Records"
+              // Verificar que el label contenga "dale play records" (case-insensitive)
               const albumLabel = albumDetails.label?.toLowerCase() || ''
-              const isDalePlayLabel = albumLabel.includes('dale play records') || 
-                                      albumLabel.includes('dale play')
+              const isDalePlayLabel = albumLabel.includes('dale play records')
               
               if (!isDalePlayLabel) {
                 continue // Saltar álbumes que no son del label
@@ -134,7 +133,7 @@ export async function searchDalePlayTracks(
         if (tracksInfoData.tracks) {
           const trackMap = new Map(tracksInfoData.tracks.map((t: any) => [t.id, t]))
           tracks.forEach(track => {
-            const fullTrack = trackMap.get(track.id)
+            const fullTrack = trackMap.get(track.id) as any
             if (fullTrack) {
               track.preview_url = fullTrack.preview_url || undefined
               track.image = fullTrack.album?.images?.[0]?.url || track.image
@@ -193,10 +192,9 @@ export async function searchDalePlayArtists(accessToken: string, limit: number =
               )
               const albumDetails = await albumDetailsRes.json()
               
-              // Verificar que el label sea "Dale Play Records"
+              // Verificar que el label contenga "dale play records" (case-insensitive)
               const albumLabel = albumDetails.label?.toLowerCase() || ''
-              const isDalePlayLabel = albumLabel.includes('dale play records') || 
-                                      albumLabel.includes('dale play')
+              const isDalePlayLabel = albumLabel.includes('dale play records')
               
               if (!isDalePlayLabel) {
                 continue // Saltar álbumes que no son del label
@@ -240,7 +238,7 @@ export async function searchDalePlayArtists(accessToken: string, limit: number =
         if (artistsInfoData.artists) {
           const artistMap = new Map(artistsInfoData.artists.map((a: any) => [a.id, a]))
           artists.forEach(artist => {
-            const fullArtist = artistMap.get(artist.id)
+            const fullArtist = artistMap.get(artist.id) as any
             if (fullArtist) {
               artist.genres = fullArtist.genres || []
               artist.popularity = fullArtist.popularity || 0
