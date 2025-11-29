@@ -2,6 +2,8 @@
  * Funciones para interactuar con Gemini API
  */
 
+import { getBPMForActivity, findMatchingActivities } from "./activity-matcher"
+
 export interface GeminiPlaylistCriteria {
   playlistName: string
   description: string
@@ -40,10 +42,50 @@ export async function callGeminiAPI(
     throw new Error("GEMINI_API_KEY no está configurada")
   }
 
+  // Intentar identificar actividad e intensidad del prompt
+  let activityBPM: { min: number; max: number } | null = null
+  let identifiedActivity: string | null = null
+  
+  // Buscar actividad en el prompt
+  const activities = findMatchingActivities(userPrompt)
+  if (activities.length > 0) {
+    // Extraer intensidad del prompt si existe
+    const intensityKeywords = {
+      'chill': 'más chill',
+      'más chill': 'más chill',
+      'relajada': 'relajada',
+      'suave': 'suave',
+      'media': 'media',
+      'moderada': 'moderada',
+      'alta': 'alta',
+      'fuerte': 'fuerte',
+      'entrenamiento fuerte': 'entrenamiento fuerte',
+      'intensa': 'intensa',
+      'muy alta': 'muy alta',
+    }
+    
+    let userIntensity: string | undefined
+    const promptLower = userPrompt.toLowerCase()
+    for (const [key, value] of Object.entries(intensityKeywords)) {
+      if (promptLower.includes(key)) {
+        userIntensity = value
+        break
+      }
+    }
+    
+    // Intentar obtener BPM para la actividad
+    const bpmData = getBPMForActivity(activities[0].actividad, userIntensity)
+    if (bpmData) {
+      activityBPM = { min: bpmData.min, max: bpmData.max }
+      identifiedActivity = activities[0].actividad
+    }
+  }
+
   // Construir el prompt para Gemini
   const prompt = `Eres un experto en música y creación de playlists personalizadas. Analiza el siguiente prompt del usuario y genera criterios de búsqueda para crear una playlist perfecta.
 
 PROMPT DEL USUARIO: "${userPrompt}"
+${identifiedActivity ? `ACTIVIDAD IDENTIFICADA: ${identifiedActivity} (BPM recomendado: ${activityBPM?.min}-${activityBPM?.max})` : ''}
 
 DATOS DEL USUARIO DE SPOTIFY:
 - Géneros favoritos: ${userData.topGenres.join(", ") || "No especificados"}
@@ -54,10 +96,11 @@ DATOS DEL USUARIO DE SPOTIFY:
   - Mood: ${userData.musicPreferences.mood}
 
 INSTRUCCIONES:
-1. Interpreta el prompt del usuario y entiende su intención (ej: "para estudiar" = música calmada, "para entrenar" = música energética)
-2. Combina el prompt con los gustos del usuario para crear una playlist personalizada
-3. Si el prompt contradice las preferencias del usuario (ej: usuario escucha música energética pero pide "para estudiar"), adapta los criterios al contexto del prompt pero mantén cierta conexión con sus gustos si es posible
-4. Genera un JSON válido con los siguientes campos:
+1. Interpreta el prompt del usuario identificando: actividad, intensidad y tiempo
+2. ${activityBPM ? `USA el rango de BPM ${activityBPM.min}-${activityBPM.max} para esta actividad. Las canciones deben tener un tempo (BPM) dentro de este rango.` : 'Identifica la actividad mencionada y ajusta el tempo según corresponda.'}
+3. Combina el prompt con los gustos del usuario para crear una playlist personalizada
+4. Si el prompt contradice las preferencias del usuario, adapta los criterios al contexto del prompt pero mantén cierta conexión con sus gustos si es posible
+5. Genera un JSON válido con los siguientes campos:
    - playlistName: Nombre sugerido para la playlist (máximo 50 caracteres)
    - description: Descripción breve de la playlist (máximo 200 caracteres)
    - criteria: Objeto con:
@@ -68,7 +111,7 @@ INSTRUCCIONES:
      - artists: Array de nombres de artistas a incluir (opcional, máximo 3)
      - excludeGenres: Array de géneros a excluir (opcional)
      - maxTracks: Número máximo de tracks (entre 15 y 50, por defecto 30)
-     - bpmRange: [minBPM, maxBPM] si es relevante (opcional)
+     - bpmRange: [minBPM, maxBPM] ${activityBPM ? `DEBE ser [${activityBPM.min}, ${activityBPM.max}]` : 'si es relevante (opcional)'}
 
 IMPORTANTE: Responde SOLO con un JSON válido, sin texto adicional antes o después.
 
@@ -157,6 +200,11 @@ EJEMPLO DE RESPUESTA:
 
     if (!criteria.criteria.maxTracks) {
       criteria.criteria.maxTracks = 30
+    }
+
+    // Si identificamos una actividad con BPM, asegurar que se use
+    if (activityBPM && !criteria.criteria.bpmRange) {
+      criteria.criteria.bpmRange = [activityBPM.min, activityBPM.max]
     }
 
     return criteria

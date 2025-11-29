@@ -187,8 +187,49 @@ export async function searchTracksInSpotify(
       }
     }
 
-    // Filtrar tracks según excludeGenres si está definido
+    // Filtrar tracks por BPM si está definido
     let finalTracks = tracks
+    if (criteria.bpmRange && criteria.bpmRange.length === 2) {
+      const [minBPM, maxBPM] = criteria.bpmRange
+      
+      // Obtener audio features de los tracks para filtrar por BPM
+      const trackIds = finalTracks.map(t => t.id).slice(0, 100) // Spotify permite hasta 100 IDs
+      const idsChunks = []
+      for (let i = 0; i < trackIds.length; i += 100) {
+        idsChunks.push(trackIds.slice(i, i + 100))
+      }
+      
+      const audioFeaturesMap = new Map<string, number>()
+      
+      for (const chunk of idsChunks) {
+        try {
+          const featuresRes = await spotifyApiRequest(
+            `/audio-features?ids=${chunk.join(',')}`,
+            accessToken
+          )
+          const featuresData = await featuresRes.json()
+          
+          if (featuresData.audio_features) {
+            featuresData.audio_features.forEach((feature: any) => {
+              if (feature && feature.id && feature.tempo) {
+                audioFeaturesMap.set(feature.id, feature.tempo)
+              }
+            })
+          }
+        } catch (error) {
+          console.error("Error obteniendo audio features:", error)
+        }
+      }
+      
+      // Filtrar tracks por BPM
+      finalTracks = finalTracks.filter(track => {
+        const tempo = audioFeaturesMap.get(track.id)
+        if (!tempo) return true // Si no tenemos el tempo, incluir el track
+        return tempo >= minBPM && tempo <= maxBPM
+      })
+    }
+    
+    // Filtrar tracks según excludeGenres si está definido
     if (criteria.excludeGenres && criteria.excludeGenres.length > 0) {
       // Nota: Spotify API no permite filtrar por exclude en search,
       // esto sería una simplificación. En producción podrías usar audio features
