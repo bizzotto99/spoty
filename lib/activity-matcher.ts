@@ -24,6 +24,9 @@ export interface BPMRange {
  * Busca actividades que coincidan con el texto dado
  */
 export function findMatchingActivities(searchText: string): Activity[] {
+  if (!searchText || typeof searchText !== 'string') {
+    return []
+  }
   const normalized = searchText.toLowerCase().trim()
   
   // Palabras comunes a ignorar (artículos, preposiciones, etc.)
@@ -88,7 +91,7 @@ export function getBPMForActivity(
   }
   
   // Si hay intensidad del usuario, ajustar
-  if (userIntensity) {
+  if (userIntensity && typeof userIntensity === 'string') {
     const normalizedIntensity = userIntensity.toLowerCase()
     
     // Mapeo de intensidades del usuario a intensidades del sistema

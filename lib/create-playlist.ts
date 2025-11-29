@@ -25,6 +25,7 @@ export async function createPlaylistInSpotify(
 ): Promise<{ id: string; url: string }> {
   try {
     // 1. Crear la playlist
+    console.log(`[createPlaylistInSpotify] 🎵 Creando playlist: "${options.name}" para usuario ${userId}`)
     const createRes = await spotifyApiRequest(
       `/users/${userId}/playlists`,
       accessToken,
@@ -56,7 +57,10 @@ export async function createPlaylistInSpotify(
 
     for (let i = 0; i < trackUris.length; i += batchSize) {
       const batch = trackUris.slice(i, i + batchSize)
-
+      const batchNumber = Math.floor(i / batchSize) + 1
+      const totalBatches = Math.ceil(trackUris.length / batchSize)
+      
+      console.log(`[createPlaylistInSpotify] ➕ Agregando lote ${batchNumber}/${totalBatches} de tracks (${batch.length} tracks) a playlist ${playlistId}`)
       const addTracksRes = await spotifyApiRequest(
         `/playlists/${playlistId}/tracks`,
         accessToken,
@@ -72,6 +76,12 @@ export async function createPlaylistInSpotify(
         const errorText = await addTracksRes.text()
         console.error(`Error agregando tracks al lote ${i / batchSize + 1}:`, errorText)
         // Continuar con el siguiente lote aunque falle uno
+      }
+
+      // Agregar delay entre lotes para evitar rate limiting
+      // Aumentar el delay para ser más conservador con los rate limits
+      if (i + batchSize < trackUris.length) {
+        await new Promise(resolve => setTimeout(resolve, 500)) // 500ms entre lotes
       }
     }
 
@@ -124,6 +134,7 @@ export async function createPlaylistInSpotify(
         }
 
         console.log(`[create-playlist] Subiendo imagen a Spotify (${sizeInKB.toFixed(2)}KB, ${contentType})`)
+        console.log(`[createPlaylistInSpotify] 🖼️ Subiendo imagen a playlist ${playlistId}`)
 
         // Subir imagen a Spotify (acepta JPEG o PNG, máximo 256KB)
         const uploadImageRes = await spotifyApiRequest(

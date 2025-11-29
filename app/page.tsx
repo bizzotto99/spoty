@@ -46,6 +46,7 @@ export default function PlaylistPrompt() {
   const [tracks, setTracks] = useState<Track[]>([])
   const [playlistUrl, setPlaylistUrl] = useState<string>("")
   const [playlistName, setPlaylistName] = useState("")
+  const [playlistDescription, setPlaylistDescription] = useState("")
   const [isEditingName, setIsEditingName] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState("Analyzing your request...")
   const [draggedTrack, setDraggedTrack] = useState<number | null>(null)
@@ -98,7 +99,7 @@ export default function PlaylistPrompt() {
     }
   }, [])
 
-  // Generate tracks using Gemini and Spotify API
+  // Generate tracks using OpenAI and Spotify API
   const generateTracks = async (promptText: string): Promise<{ tracks: Track[]; playlistName: string; description: string }> => {
     const response = await fetch("/api/generate-playlist", {
       method: "POST",
@@ -183,12 +184,13 @@ export default function PlaylistPrompt() {
     }, 500)
     
     try {
-      // Generar canciones usando Gemini y Spotify
+      // Generar canciones usando OpenAI y Spotify
       const result = await generateTracks(prompt)
       clearInterval(messageInterval)
       
       setTracks(result.tracks)
       setPlaylistName(result.playlistName)
+      setPlaylistDescription(result.description || "")
       
       // Paso 2: Preview
       setFlowState('preview')
@@ -217,7 +219,7 @@ export default function PlaylistPrompt() {
         credentials: "include",
         body: JSON.stringify({
           name: playlistName || "My Playlist",
-          description: "",
+          description: playlistDescription || "",
           tracks: tracks.map(track => ({
             uri: track.uri || `spotify:track:${track.id}`,
           })),
@@ -250,6 +252,7 @@ export default function PlaylistPrompt() {
     generateTracks(prompt).then((result) => {
       setTracks(result.tracks)
       setPlaylistName(result.playlistName)
+      setPlaylistDescription(result.description || "")
       setFlowState('preview')
     }).catch((error) => {
       const errorMessage = error instanceof Error ? error.message : "Try again"
@@ -268,6 +271,7 @@ export default function PlaylistPrompt() {
     setEditPrompt("")
     setPlaylistUrl("")
     setPlaylistName("")
+    setPlaylistDescription("")
     setIsEditingName(false)
   }
 
@@ -288,6 +292,8 @@ export default function PlaylistPrompt() {
     try {
       const result = await generateTracks(editPrompt)
       setTracks(result.tracks)
+      setPlaylistName(result.playlistName)
+      setPlaylistDescription(result.description || "")
       setEditPrompt("")
       toast.success("Updated!", {
         description: "Your playlist is ready",

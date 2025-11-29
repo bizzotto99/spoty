@@ -41,20 +41,18 @@ export async function searchDalePlayTracks(
     const seenAlbumIds = new Set<string>()
     
     // Buscar álbumes que puedan tener "Dale Play Records" como label
-    // Spotify no tiene búsqueda directa por label, así que buscamos por texto y luego verificamos el label real
+    // Solo usar una query para reducir requests
     const searchQueries = [
       'Dale Play Records',
-      'dale play records',
-      'Dale Play',
     ]
     
     for (const query of searchQueries) {
       if (tracks.length >= limit) break
       
       try {
-        // Buscar álbumes
+        // Buscar álbumes (reducir límite a 10 para hacer menos requests)
         const albumSearchRes = await spotifyApiRequest(
-          `/search?q=${encodeURIComponent(query)}&type=album&limit=50&market=US`,
+          `/search?q=${encodeURIComponent(query)}&type=album&limit=10&market=US`,
           accessToken
         )
         const albumSearchData = await albumSearchRes.json()
@@ -66,11 +64,27 @@ export async function searchDalePlayTracks(
             if (seenAlbumIds.has(album.id)) continue
             
             try {
+              // Aumentar delay a 500ms para evitar rate limiting
+              await new Promise(resolve => setTimeout(resolve, 500))
+              
               // Obtener detalles completos del álbum para ver el label
               const albumDetailsRes = await spotifyApiRequest(
                 `/albums/${album.id}?market=US`,
                 accessToken
               )
+              
+              // Verificar si la respuesta es válida antes de parsear JSON
+              if (!albumDetailsRes.ok) {
+                const errorText = await albumDetailsRes.text()
+                if (albumDetailsRes.status === 429 || errorText.includes("Too many requests")) {
+                  console.warn(`Rate limit al obtener álbum "${album.name}". Esperando 5 segundos...`)
+                  await new Promise(resolve => setTimeout(resolve, 5000))
+                  continue
+                }
+                console.error(`Error obteniendo álbum "${album.name}": ${albumDetailsRes.status}`)
+                continue
+              }
+              
               const albumDetails = await albumDetailsRes.json()
               
               // Verificar que el label contenga "dale play records" (case-insensitive)
@@ -84,10 +98,26 @@ export async function searchDalePlayTracks(
               seenAlbumIds.add(album.id)
               
               // Obtener los tracks del álbum
+              // Aumentar delay a 500ms para evitar rate limiting
+              await new Promise(resolve => setTimeout(resolve, 500))
+              
               const albumTracksRes = await spotifyApiRequest(
                 `/albums/${album.id}/tracks?limit=50&market=US`,
                 accessToken
               )
+              
+              // Verificar si la respuesta es válida antes de parsear JSON
+              if (!albumTracksRes.ok) {
+                const errorText = await albumTracksRes.text()
+                if (albumTracksRes.status === 429 || errorText.includes("Too many requests")) {
+                  console.warn(`Rate limit al obtener tracks del álbum "${album.name}". Esperando 5 segundos...`)
+                  await new Promise(resolve => setTimeout(resolve, 5000)) // Esperar 5 segundos
+                  continue // Saltar este álbum y continuar con el siguiente
+                }
+                console.error(`Error obteniendo tracks del álbum "${album.name}": ${albumTracksRes.status} ${errorText.substring(0, 100)}`)
+                continue // Continuar con el siguiente álbum en lugar de lanzar error
+              }
+              
               const albumTracksData = await albumTracksRes.json()
               
               if (albumTracksData.items) {
@@ -162,11 +192,9 @@ export async function searchDalePlayArtists(accessToken: string, limit: number =
     const seenArtistIds = new Set<string>()
     
     // Buscar álbumes que puedan tener "Dale Play Records" como label
-    // Verificamos el label real en los metadatos del álbum
+    // Solo usar una query para reducir requests
     const searchQueries = [
       'Dale Play Records',
-      'dale play records',
-      'Dale Play',
     ]
     
     for (const query of searchQueries) {
@@ -174,7 +202,7 @@ export async function searchDalePlayArtists(accessToken: string, limit: number =
       
       try {
         const albumSearchRes = await spotifyApiRequest(
-          `/search?q=${encodeURIComponent(query)}&type=album&limit=50&market=US`,
+          `/search?q=${encodeURIComponent(query)}&type=album&limit=10&market=US`,
           accessToken
         )
         const albumSearchData = await albumSearchRes.json()
@@ -185,11 +213,27 @@ export async function searchDalePlayArtists(accessToken: string, limit: number =
             if (artists.length >= limit) break
             
             try {
+              // Aumentar delay a 500ms para evitar rate limiting
+              await new Promise(resolve => setTimeout(resolve, 500))
+              
               // Obtener detalles completos del álbum para ver el label
               const albumDetailsRes = await spotifyApiRequest(
                 `/albums/${album.id}?market=US`,
                 accessToken
               )
+              
+              // Verificar si la respuesta es válida antes de parsear JSON
+              if (!albumDetailsRes.ok) {
+                const errorText = await albumDetailsRes.text()
+                if (albumDetailsRes.status === 429 || errorText.includes("Too many requests")) {
+                  console.warn(`Rate limit al obtener álbum "${album.name}". Esperando 5 segundos...`)
+                  await new Promise(resolve => setTimeout(resolve, 5000))
+                  continue
+                }
+                console.error(`Error obteniendo álbum "${album.name}": ${albumDetailsRes.status}`)
+                continue
+              }
+              
               const albumDetails = await albumDetailsRes.json()
               
               // Verificar que el label contenga "dale play records" (case-insensitive)
