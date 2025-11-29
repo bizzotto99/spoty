@@ -44,11 +44,8 @@ export async function callGeminiAPI(
     throw new Error("GEMINI_API_KEY no está configurada")
   }
 
-  // Validar que la API key tenga el formato correcto (debería empezar con "AIza")
-  if (!GEMINI_API_KEY.startsWith("AIza")) {
-    console.error("GEMINI_API_KEY no tiene el formato esperado. Debería empezar con 'AIza'")
-    throw new Error("GEMINI_API_KEY tiene un formato inválido")
-  }
+  // No validamos el formato - dejamos que la API de Gemini valide la key
+  // Las API keys pueden tener diferentes formatos según el tipo y versión
 
   // Intentar identificar actividad e intensidad del prompt
   let activityBPM: { min: number; max: number } | null = null
