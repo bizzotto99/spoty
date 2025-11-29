@@ -262,13 +262,13 @@ export default function PlaylistPrompt() {
           style={{ backgroundColor: "#1DB954" }}
         >
           {/* Logo */}
-          <div className="flex items-center">
+          <a href="/" className="flex items-center cursor-pointer transition-opacity duration-300 hover:opacity-80">
             <img 
               src="/logo.png" 
               alt="Spoty" 
               className="h-10 w-auto"
             />
-          </div>
+          </a>
 
           {/* Authentication button */}
           {isLoading ? (
@@ -360,44 +360,44 @@ export default function PlaylistPrompt() {
 
       <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-8">
         {flowState === 'idle' && (
-          <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center gap-4">
-            <h2 className="text-white text-2xl font-medium text-center mb-2" style={{ fontFamily: "system-ui, sans-serif" }}>
-              What do you feel like listening to today?
-            </h2>
-            
-            <div
-              className="flex items-center gap-0 rounded-full transition-all duration-300 w-full"
-              style={{ backgroundColor: "#1a1a1a" }}
-            >
-              <input
-                type="text"
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                placeholder="Describe the playlist you want…"
-                className="flex-1 px-6 py-4 bg-transparent text-white placeholder-gray-500 outline-none font-sans text-base"
-                style={{ color: "#ffffff" }}
-              />
+        <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center gap-4">
+          <h2 className="text-white text-2xl font-medium text-center mb-2" style={{ fontFamily: "system-ui, sans-serif" }}>
+            What do you feel like listening to today?
+          </h2>
+          
+          <div
+            className="flex items-center gap-0 rounded-full transition-all duration-300 w-full"
+            style={{ backgroundColor: "#1a1a1a" }}
+          >
+            <input
+              type="text"
+              value={prompt}
+              onChange={(e) => setPrompt(e.target.value)}
+              placeholder="Describe the playlist you want…"
+              className="flex-1 px-6 py-4 bg-transparent text-white placeholder-gray-500 outline-none font-sans text-base"
+              style={{ color: "#ffffff" }}
+            />
 
-              <button
-                type="submit"
-                className="mr-3 p-2 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center"
-                style={{
-                  backgroundColor: "#1DB954",
-                  color: "#000",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = "0 0 16px rgba(29, 185, 84, 0.4)"
-                  e.currentTarget.style.backgroundColor = "#1ed760"
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = "none"
-                  e.currentTarget.style.backgroundColor = "#1DB954"
-                }}
-                aria-label="Send prompt"
-              >
-                <Send size={20} strokeWidth={2.5} />
-              </button>
-            </div>
+            <button
+              type="submit"
+              className="mr-3 p-2 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center"
+              style={{
+                backgroundColor: "#1DB954",
+                color: "#000",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = "0 0 16px rgba(29, 185, 84, 0.4)"
+                e.currentTarget.style.backgroundColor = "#1ed760"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = "none"
+                e.currentTarget.style.backgroundColor = "#1DB954"
+              }}
+              aria-label="Send prompt"
+            >
+              <Send size={20} strokeWidth={2.5} />
+            </button>
+          </div>
 
             {isAuthenticated && (
               <div className="w-full mt-4">
@@ -446,7 +446,7 @@ export default function PlaylistPrompt() {
                 </div>
               </div>
             )}
-          </form>
+        </form>
         )}
 
         {flowState === 'loading' && (
