@@ -41,8 +41,8 @@ export async function selectTracksWithOpenAI(
   let identifiedActivity: string | null = null
   
   const activities = findMatchingActivities(userPrompt)
-  if (activities.length > 0) {
-    identifiedActivity = activities[0]
+  if (activities.length > 0 && activities[0] && activities[0].actividad && typeof activities[0].actividad === 'string') {
+    identifiedActivity = String(activities[0].actividad) // Asegurar que sea string
     const bpmRange = getBPMForActivity(identifiedActivity)
     if (bpmRange) {
       activityBPM = bpmRange

@@ -16,7 +16,7 @@ export interface ValidationResult {
 export function validatePrompt(prompt: string): ValidationResult {
   const errors: string[] = []
   const warnings: string[] = []
-  const promptLower = prompt.toLowerCase().trim()
+  const promptLower = (prompt && typeof prompt === 'string' ? prompt : '').toLowerCase().trim()
 
   // Validar actividad (obligatorio)
   const activities = findMatchingActivities(prompt)

@@ -48,6 +48,7 @@ export async function POST(request: NextRequest) {
       },
       maxTracksNeeded
     )
+    
 
     // 6. Buscar SOLO las canciones específicas que OpenAI seleccionó en Spotify
     console.log(`🔍 Buscando ${trackSelection.tracks.length} canciones específicas en Spotify...`)

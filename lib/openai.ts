@@ -123,7 +123,7 @@ export async function callOpenAIAPI(
     }
     
     let userIntensity: string | undefined
-    const promptLower = userPrompt.toLowerCase()
+    const promptLower = (userPrompt && typeof userPrompt === 'string' ? userPrompt : '').toLowerCase()
     
     for (const [key, value] of Object.entries(intensityKeywords)) {
       if (promptLower.includes(key)) {
