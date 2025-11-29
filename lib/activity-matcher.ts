@@ -26,10 +26,44 @@ export interface BPMRange {
 export function findMatchingActivities(searchText: string): Activity[] {
   const normalized = searchText.toLowerCase().trim()
   
-  // Buscar coincidencias exactas o parciales
+  // Palabras comunes a ignorar (artículos, preposiciones, etc.)
+  const stopWords = new Set([
+    'que', 'quiero', 'una', 'un', 'el', 'la', 'los', 'las', 'de', 'del', 'para', 'por', 'con', 'sin',
+    'playlist', 'playlists', 'música', 'musica', 'canciones', 'cancion', 'track', 'tracks',
+    'minutos', 'minuto', 'horas', 'hora', 'tiempo', 'duración', 'duracion', 'aprox', 'aproximadamente'
+  ])
+  
+  // Extraer palabras clave del texto (palabras de 3+ caracteres, excluyendo stop words)
+  const words = normalized
+    .split(/\s+/)
+    .filter(word => word.length >= 3 && !stopWords.has(word))
+  
+  // Buscar actividades que coincidan
   return activities.filter(activity => {
     const activityName = activity.actividad.toLowerCase()
-    return activityName.includes(normalized) || normalized.includes(activityName)
+    
+    // Si el nombre completo de la actividad está en el texto
+    if (normalized.includes(activityName)) {
+      return true
+    }
+    
+    // Si alguna palabra clave está en el nombre de la actividad
+    // Ej: "correr" en "Correr normal" o "Correr rápido"
+    for (const word of words) {
+      if (activityName.includes(word)) {
+        return true
+      }
+    }
+    
+    // También verificar si palabras del nombre de la actividad están en el texto
+    const activityWords = activityName.split(/\s+/).filter(word => word.length >= 3)
+    for (const activityWord of activityWords) {
+      if (normalized.includes(activityWord)) {
+        return true
+      }
+    }
+    
+    return false
   })
 }
 
