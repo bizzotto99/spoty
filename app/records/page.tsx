@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { LogOut, ChevronDown, Send } from "lucide-react"
+import { LogOut, ChevronDown, Send, Music } from "lucide-react"
 import { ParticlesBackground } from "@/components/particles-background"
 import { useSpotifyAuth } from "@/hooks/use-spotify-auth"
 import {
@@ -152,6 +152,22 @@ export default function RecordsPage() {
                   border: "1px solid #333",
                 }}
               >
+                {/* Plaquita con logo Dale Play */}
+                <div className="px-3 py-2 border-b border-[#333]">
+                  <img 
+                    src="/daleplay.png" 
+                    alt="Dale Play Records" 
+                    className="w-full h-auto"
+                  />
+                </div>
+                
+                <DropdownMenuItem
+                  className="cursor-pointer focus:bg-[#1DB954] focus:text-black"
+                  style={{ color: "#fff" }}
+                >
+                  <Music className="mr-2 h-4 w-4" />
+                  <span>My Playlists</span>
+                </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={logout}
                   className="cursor-pointer focus:bg-[#1DB954] focus:text-black"
@@ -210,9 +226,20 @@ export default function RecordsPage() {
           </div>
         ) : (
           <div className="w-full max-w-4xl mx-auto px-4 flex flex-col items-center">
-            {/* Título */}
+            {/* Smart playlisting Powered by AI */}
+            <div className="text-center mb-6">
+              <p className="text-white text-lg font-medium" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+                Smart playlisting
+              </p>
+              <p className="text-white text-lg font-medium" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+                Powered by AI
+              </p>
+            </div>
+
+            {/* Título dividido en dos renglones */}
             <h1 className="text-white text-4xl font-bold text-center mb-8" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
-              Scale Your Playlist Creation for Your Label
+              <span className="block">Scale Your Playlist Creation</span>
+              <span className="block">for Your Label</span>
             </h1>
 
             {/* Input centrado */}
