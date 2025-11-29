@@ -86,7 +86,7 @@ export function extractDurationAndCalculateTracks(userPrompt: string): number {
   
   const avgSongDurationMinutes = 3.5
   const calculatedMaxTracks = Math.ceil(actualMinutes / avgSongDurationMinutes)
-  return Math.max(10, Math.min(100, calculatedMaxTracks))
+  return Math.max(10, Math.min(20, calculatedMaxTracks)) // Límite máximo de 20 canciones
 }
 
 /**
