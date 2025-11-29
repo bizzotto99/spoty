@@ -271,13 +271,13 @@ export default function MyPlaylistsPage() {
                 <div
                   key={playlist.id}
                   className="group cursor-pointer rounded-lg p-4 transition-all duration-300"
-                  style={{ backgroundColor: "#1a1a1a" }}
+                  style={{ backgroundColor: "transparent" }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "#252525"
+                    e.currentTarget.style.backgroundColor = "rgba(26, 26, 26, 0.6)"
                     e.currentTarget.style.transform = "translateY(-4px)"
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "#1a1a1a"
+                    e.currentTarget.style.backgroundColor = "transparent"
                     e.currentTarget.style.transform = "translateY(0)"
                   }}
                   onClick={() => {
