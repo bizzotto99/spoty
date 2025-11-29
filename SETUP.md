@@ -302,7 +302,7 @@ Después de configurar la autenticación:
 
 ---
 
-## 📋 Paso 3: Configurar Supabase (Base de Datos - Opcional)
+## 📋 Paso 3: Configurar Supabase (Base de Datos - Opcional)a
 
 Si quieres usar una base de datos para guardar información de usuarios, playlists, etc., puedes configurar Supabase.
 
