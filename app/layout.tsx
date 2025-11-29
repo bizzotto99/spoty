@@ -11,15 +11,7 @@ export const metadata: Metadata = {
   title: 'Spoty',
   description: 'Create personalized playlists with AI',
   icons: {
-    icon: [
-      {
-        url: '/icon.png',
-      },
-      {
-        url: '/icon.svg',
-        type: 'image/svg+xml',
-      },
-    ],
+    icon: '/icon.png',
     apple: '/icon.png',
   },
 }

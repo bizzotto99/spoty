@@ -96,6 +96,15 @@ export function useSpotifyAuth(): UseSpotifyAuthReturn {
         setIsAuthenticated(true)
         setUser(data.user)
         setIsLoading(false)
+        
+        // Obtener datos adicionales del usuario en segundo plano
+        fetch("/api/user/data", {
+          credentials: 'include',
+          cache: 'no-store',
+        }).catch(() => {
+          // Silenciar errores, es opcional
+        })
+        
         return true
       } else {
         setIsAuthenticated(false)
