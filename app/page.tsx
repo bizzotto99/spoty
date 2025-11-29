@@ -423,6 +423,7 @@ export default function PlaylistPrompt() {
             </button>
           </div>
         </form>
+        )}
 
         {isAuthenticated && flowState === 'idle' && (
           <div className="w-full max-w-2xl mx-auto px-4 mt-8">
@@ -548,7 +549,6 @@ export default function PlaylistPrompt() {
             </DialogFooter>
           </DialogContent>
         </Dialog>
-        )}
 
         {flowState === 'loading' && (
           <div className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center gap-6">
