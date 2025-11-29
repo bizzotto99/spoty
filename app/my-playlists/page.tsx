@@ -271,13 +271,13 @@ export default function MyPlaylistsPage() {
                 <div
                   key={playlist.id}
                   className="group cursor-pointer rounded-lg p-4 transition-all duration-300"
-                  style={{ backgroundColor: "transparent" }}
+                  style={{ backgroundColor: "#1a1a1a" }}
                   onMouseEnter={(e) => {
-                    e.currentTarget.style.backgroundColor = "rgba(26, 26, 26, 0.6)"
+                    e.currentTarget.style.backgroundColor = "#252525"
                     e.currentTarget.style.transform = "translateY(-4px)"
                   }}
                   onMouseLeave={(e) => {
-                    e.currentTarget.style.backgroundColor = "transparent"
+                    e.currentTarget.style.backgroundColor = "#1a1a1a"
                     e.currentTarget.style.transform = "translateY(0)"
                   }}
                   onClick={() => {
@@ -297,13 +297,6 @@ export default function MyPlaylistsPage() {
                         target.src = "/playlist.png"
                       }}
                     />
-                    {/* Overlay on hover */}
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center">
-                      <ExternalLink 
-                        className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        style={{ filter: "drop-shadow(0 0 8px rgba(29, 185, 84, 0.8))" }}
-                      />
-                    </div>
                   </div>
 
                   {/* Playlist Info */}
