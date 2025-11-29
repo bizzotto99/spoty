@@ -3,7 +3,8 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Send, LogOut, ChevronDown, Music, Loader2, CheckCircle2, ExternalLink, RefreshCw, Edit2, Save, HelpCircle } from "lucide-react"
+import { Send, LogOut, ChevronDown, Music, Loader2, CheckCircle2, ExternalLink, RefreshCw, Edit2, Save, HelpCircle, ListMusic } from "lucide-react"
+import { useRouter } from "next/navigation"
 import { ParticlesBackground } from "@/components/particles-background"
 import { useSpotifyAuth } from "@/hooks/use-spotify-auth"
 import {
@@ -46,6 +47,7 @@ export default function PlaylistPrompt() {
   const [isEditingName, setIsEditingName] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState("Analyzing your request...")
   const { isAuthenticated, user, isLoading, login, logout } = useSpotifyAuth()
+  const router = useRouter()
 
   // Check if there's an error or success in the URL (from callback)
   useEffect(() => {
@@ -348,6 +350,14 @@ export default function PlaylistPrompt() {
                 }}
               >
                 <DropdownMenuItem
+                  onClick={() => router.push("/my-playlists")}
+                  className="cursor-pointer focus:bg-[#1DB954] focus:text-black"
+                  style={{ color: "#fff" }}
+                >
+                  <ListMusic className="mr-2 h-4 w-4" />
+                  <span>My Playlists</span>
+                </DropdownMenuItem>
+                <DropdownMenuItem
                   onClick={logout}
                   className="cursor-pointer focus:bg-[#1DB954] focus:text-black"
                   style={{ color: "#fff" }}
@@ -389,7 +399,7 @@ export default function PlaylistPrompt() {
         <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center gap-4">
           {isAuthenticated ? (
             <span 
-              className="text-5xl mb-8"
+              className="text-5xl mb-8 text-center"
               style={{ 
                 color: "#ffffff",
                 fontFamily: "var(--font-playfair), 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif",
@@ -398,7 +408,7 @@ export default function PlaylistPrompt() {
                 fontStyle: "italic",
               }}
             >
-              Records
+              Scale Your Playlist Creation for Your Label
             </span>
           ) : (
             <span 
@@ -447,6 +457,30 @@ export default function PlaylistPrompt() {
             >
               <Send size={20} strokeWidth={2.5} />
             </button>
+          </div>
+          
+          {/* Recommendations Tooltip */}
+          <div className="mt-4 w-full max-w-2xl mx-auto px-4">
+            <div 
+              className="rounded-lg p-4"
+              style={{ 
+                backgroundColor: "rgba(26, 26, 26, 0.6)",
+                border: "1px solid rgba(255, 255, 255, 0.1)"
+              }}
+            >
+              <div className="flex items-start gap-3">
+                <HelpCircle className="w-5 h-5 mt-0.5 flex-shrink-0" style={{ color: "#1DB954" }} />
+                <div className="flex-1">
+                  <p className="text-sm font-medium text-white mb-2">Tips for better results:</p>
+                  <ul className="text-xs text-gray-400 space-y-1 list-disc list-inside">
+                    <li>Be specific about mood, genre, or activity (e.g., "energetic workout mix", "chill evening vibes")</li>
+                    <li>Mention tempo preferences (e.g., "fast-paced", "slow and relaxing")</li>
+                    <li>Include artist names or song references for style guidance</li>
+                    <li>Describe the occasion or setting (e.g., "party playlist", "focus music")</li>
+                  </ul>
+                </div>
+              </div>
+            </div>
           </div>
         </form>
         )}

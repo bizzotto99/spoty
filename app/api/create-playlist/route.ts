@@ -84,22 +84,29 @@ export async function POST(request: NextRequest) {
 
     // 5. Guardar la playlist en la base de datos
     try {
+      console.log(`[create-playlist] Intentando guardar playlist ${result.id} para usuario ${userId}`)
+      
       // Obtener el user_id (UUID) desde la base de datos usando el spotify_user_id
       const dbUser = await getUserBySpotifyId(userId)
       
+      console.log(`[create-playlist] Usuario encontrado en DB:`, dbUser ? `Sí (id: ${dbUser.id})` : 'No')
+      
       if (dbUser && dbUser.id) {
         // Guardar la playlist en Supabase
-        await createPlaylistInDB({
+        const savedPlaylist = await createPlaylistInDB({
           spotify_playlist_id: result.id,
           user_id: dbUser.id,
         })
-        console.log(`Playlist ${result.id} guardada en base de datos para usuario ${dbUser.id}`)
+        console.log(`[create-playlist] ✅ Playlist ${result.id} guardada exitosamente en base de datos para usuario ${dbUser.id}`, savedPlaylist)
       } else {
-        console.warn(`Usuario con spotify_user_id ${userId} no encontrado en base de datos. La playlist se creó en Spotify pero no se guardó en DB.`)
+        console.warn(`[create-playlist] ⚠️ Usuario con spotify_user_id ${userId} no encontrado en base de datos. La playlist se creó en Spotify pero no se guardó en DB.`)
       }
     } catch (dbError) {
       // No fallar si hay error de base de datos, solo loguear
-      console.error("Error guardando playlist en base de datos:", dbError)
+      console.error("[create-playlist] ❌ Error guardando playlist en base de datos:", dbError)
+      if (dbError instanceof Error) {
+        console.error("[create-playlist] Error details:", dbError.message, dbError.stack)
+      }
       // La playlist ya está creada en Spotify, así que continuamos
     }
 
