@@ -2,7 +2,7 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { LogOut, ChevronDown, Send, Music, HelpCircle } from "lucide-react"
+import { LogOut, ChevronDown, Send } from "lucide-react"
 import { ParticlesBackground } from "@/components/particles-background"
 import { useSpotifyAuth } from "@/hooks/use-spotify-auth"
 import {
@@ -73,8 +73,6 @@ export default function RecordsPage() {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       setShowConnectModal(true)
-    } else if (isAuthenticated) {
-      setShowConnectModal(false)
     }
   }, [isLoading, isAuthenticated])
 
@@ -189,11 +187,7 @@ export default function RecordsPage() {
       </nav>
 
       <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-8">
-        {isLoading ? (
-          <div className="text-center">
-            <p className="text-gray-400 text-lg">Loading...</p>
-          </div>
-        ) : !isAuthenticated ? (
+        {!isAuthenticated ? (
           <div className="text-center">
             <div className="flex items-center justify-center gap-4 mb-4">
               <h1 className="text-white text-5xl font-bold tracking-tight" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -215,67 +209,51 @@ export default function RecordsPage() {
             <p className="text-gray-400 text-lg">Connect with Spotify to view your records</p>
           </div>
         ) : (
-          <div className="w-full max-w-4xl mx-auto px-4">
-            <div className="text-center mb-8">
-              <div className="flex items-center justify-center gap-4 mb-4 flex-wrap">
-                <h1 className="text-white text-5xl font-bold tracking-tight" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
-                  Scale Your Playlist Creation
-                </h1>
-                <span 
-                  className="text-5xl"
-                  style={{ 
-                    color: "#ffffff",
-                    fontFamily: "var(--font-playfair), 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif",
-                    fontWeight: 300,
-                    letterSpacing: "0.15em",
-                    fontStyle: "italic",
-                  }}
-                >
-                  for Your Label
-                </span>
-              </div>
-              <p className="text-gray-400 text-lg">Create perfect playlists at scale for your record label</p>
-            </div>
+          <div className="w-full max-w-4xl mx-auto px-4 flex flex-col items-center">
+            {/* Título */}
+            <h1 className="text-white text-4xl font-bold text-center mb-8" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+              Scale Your Playlist Creation for Your Label
+            </h1>
 
             {/* Input centrado */}
-            <div className="w-full flex justify-center mb-8">
-              <form className="w-full max-w-2xl flex flex-col items-center gap-4">
-                <div
-                  className="flex items-center gap-0 rounded-full transition-all duration-300 w-full"
-                  style={{ backgroundColor: "#1a1a1a" }}
+            <div className="w-full max-w-2xl mb-8">
+              <div
+                className="flex items-center gap-0 rounded-full transition-all duration-300 w-full"
+                style={{ backgroundColor: "#1a1a1a" }}
+              >
+                <input
+                  type="text"
+                  placeholder="Describe the playlist you want to create…"
+                  className="flex-1 px-6 py-4 bg-transparent text-white placeholder-gray-500 outline-none font-sans text-base"
+                  style={{ color: "#ffffff" }}
+                />
+                <button
+                  type="button"
+                  className="mr-3 p-2 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center"
+                  style={{
+                    backgroundColor: "#1DB954",
+                    color: "#000",
+                  }}
+                  onMouseEnter={(e) => {
+                    e.currentTarget.style.boxShadow = "0 0 16px rgba(29, 185, 84, 0.4)"
+                    e.currentTarget.style.backgroundColor = "#1ed760"
+                  }}
+                  onMouseLeave={(e) => {
+                    e.currentTarget.style.boxShadow = "none"
+                    e.currentTarget.style.backgroundColor = "#1DB954"
+                  }}
+                  aria-label="Send prompt"
                 >
-                  <input
-                    type="text"
-                    placeholder="Describe the playlist you want…"
-                    className="flex-1 px-6 py-4 bg-transparent text-white placeholder-gray-500 outline-none font-sans text-base"
-                    style={{ color: "#ffffff" }}
-                  />
-                  <button
-                    type="submit"
-                    className="mr-3 p-2 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center"
-                    style={{
-                      backgroundColor: "#1DB954",
-                      color: "#000",
-                    }}
-                    onMouseEnter={(e) => {
-                      e.currentTarget.style.boxShadow = "0 0 16px rgba(29, 185, 84, 0.4)"
-                      e.currentTarget.style.backgroundColor = "#1ed760"
-                    }}
-                    onMouseLeave={(e) => {
-                      e.currentTarget.style.boxShadow = "none"
-                      e.currentTarget.style.backgroundColor = "#1DB954"
-                    }}
-                    aria-label="Send prompt"
-                  >
-                    <Send size={20} strokeWidth={2.5} />
-                  </button>
-                </div>
-              </form>
+                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <line x1="22" y1="2" x2="11" y2="13"></line>
+                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
+                  </svg>
+                </button>
+              </div>
             </div>
 
-            {/* Tips debajo del input - centrados */}
-            <div className="w-full flex justify-center">
-              <div className="w-full max-w-2xl">
+            {/* Tips para el prompt */}
+            <div className="w-full max-w-2xl">
               <div className="flex items-center gap-2 mb-3">
                 <svg className="w-4 h-4" style={{ color: "#1DB954" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
@@ -301,7 +279,7 @@ export default function RecordsPage() {
                     <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(29, 185, 84, 0.1)" }}>
                       <div className="w-4 h-4 border-2 rounded" style={{ borderColor: "#1DB954" }} />
                     </div>
-                    <p className="text-white text-sm font-medium">Time <span className="text-red-400">*</span></p>
+                    <p className="text-white text-sm font-medium">Duration <span className="text-red-400">*</span></p>
                   </div>
                   <p className="text-gray-400 text-xs">45 minutes, 1 hour, 2 hours...</p>
                 </div>
@@ -310,9 +288,8 @@ export default function RecordsPage() {
               <div className="mt-3 p-3 rounded-xl" style={{ backgroundColor: "rgba(29, 185, 84, 0.05)", border: "1px solid rgba(29, 185, 84, 0.2)" }}>
                 <p className="text-gray-400 text-xs mb-1.5">💡 Example:</p>
                 <p className="text-white text-sm italic" style={{ color: "#1DB954" }}>
-                  "A playlist for running for about 45 minutes, with world cup songs"
+                  "A playlist for running 45 minutes with high energy tracks"
                 </p>
-              </div>
               </div>
             </div>
           </div>
