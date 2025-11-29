@@ -40,18 +40,19 @@ export async function searchDalePlayTracks(
     const seenTrackIds = new Set<string>()
     const seenAlbumIds = new Set<string>()
     
-    // Buscar álbumes del label "Dale Play Records"
+    // Buscar álbumes que puedan tener "Dale Play Records" como label
+    // Spotify no tiene búsqueda directa por label, así que buscamos por texto y luego verificamos el label real
     const searchQueries = [
-      `label:"${DALE_PLAY_LABEL}"`,
-      `label:"Dale Play Records"`,
-      `label:"dale play records"`,
+      'Dale Play Records',
+      'dale play records',
+      'Dale Play',
     ]
     
     for (const query of searchQueries) {
       if (tracks.length >= limit) break
       
       try {
-        // Buscar álbumes del label
+        // Buscar álbumes
         const albumSearchRes = await spotifyApiRequest(
           `/search?q=${encodeURIComponent(query)}&type=album&limit=50&market=US`,
           accessToken
@@ -59,14 +60,30 @@ export async function searchDalePlayTracks(
         const albumSearchData = await albumSearchRes.json()
         
         if (albumSearchData.albums?.items) {
-          // Para cada álbum, obtener sus tracks
+          // Para cada álbum, obtener sus detalles completos para verificar el label
           for (const album of albumSearchData.albums.items) {
             if (tracks.length >= limit) break
             if (seenAlbumIds.has(album.id)) continue
             
-            seenAlbumIds.add(album.id)
-            
             try {
+              // Obtener detalles completos del álbum para ver el label
+              const albumDetailsRes = await spotifyApiRequest(
+                `/albums/${album.id}?market=US`,
+                accessToken
+              )
+              const albumDetails = await albumDetailsRes.json()
+              
+              // Verificar que el label sea "Dale Play Records"
+              const albumLabel = albumDetails.label?.toLowerCase() || ''
+              const isDalePlayLabel = albumLabel.includes('dale play records') || 
+                                      albumLabel.includes('dale play')
+              
+              if (!isDalePlayLabel) {
+                continue // Saltar álbumes que no son del label
+              }
+              
+              seenAlbumIds.add(album.id)
+              
               // Obtener los tracks del álbum
               const albumTracksRes = await spotifyApiRequest(
                 `/albums/${album.id}/tracks?limit=50&market=US`,
@@ -86,8 +103,8 @@ export async function searchDalePlayTracks(
                     id: track.id,
                     name: track.name,
                     artist: track.artists?.[0]?.name || "Unknown",
-                    album: album.name || "Unknown",
-                    image: album.images?.[0]?.url || "/icon.png",
+                    album: albumDetails.name || "Unknown",
+                    image: albumDetails.images?.[0]?.url || "/icon.png",
                     duration_ms: track.duration_ms || 0,
                     preview_url: undefined, // Se obtendrá después si es necesario
                     uri: track.uri,
@@ -95,7 +112,7 @@ export async function searchDalePlayTracks(
                 })
               }
             } catch (error) {
-              console.error(`Error obteniendo tracks del álbum "${album.name}":`, error)
+              console.error(`Error obteniendo detalles del álbum "${album.name}":`, error)
             }
           }
         }
@@ -145,11 +162,12 @@ export async function searchDalePlayArtists(accessToken: string, limit: number =
     const artists: Artist[] = []
     const seenArtistIds = new Set<string>()
     
-    // Buscar álbumes del label "Dale Play Records"
+    // Buscar álbumes que puedan tener "Dale Play Records" como label
+    // Verificamos el label real en los metadatos del álbum
     const searchQueries = [
-      `label:"${DALE_PLAY_LABEL}"`,
-      `label:"Dale Play Records"`,
-      `label:"dale play records"`,
+      'Dale Play Records',
+      'dale play records',
+      'Dale Play',
     ]
     
     for (const query of searchQueries) {
@@ -163,23 +181,46 @@ export async function searchDalePlayArtists(accessToken: string, limit: number =
         const albumSearchData = await albumSearchRes.json()
         
         if (albumSearchData.albums?.items) {
-          // Extraer todos los artistas únicos de los álbumes
-          albumSearchData.albums.items.forEach((album: any) => {
-            if (album.artists && album.artists.length > 0) {
-              album.artists.forEach((artist: any) => {
-                if (!seenArtistIds.has(artist.id) && artists.length < limit) {
-                  seenArtistIds.add(artist.id)
-                  artists.push({
-                    id: artist.id,
-                    name: artist.name,
-                    genres: [], // Los géneros se obtendrán después
-                    popularity: 0,
-                    image: undefined,
-                  })
-                }
-              })
+          // Para cada álbum, verificar que sea del label correcto
+          for (const album of albumSearchData.albums.items) {
+            if (artists.length >= limit) break
+            
+            try {
+              // Obtener detalles completos del álbum para ver el label
+              const albumDetailsRes = await spotifyApiRequest(
+                `/albums/${album.id}?market=US`,
+                accessToken
+              )
+              const albumDetails = await albumDetailsRes.json()
+              
+              // Verificar que el label sea "Dale Play Records"
+              const albumLabel = albumDetails.label?.toLowerCase() || ''
+              const isDalePlayLabel = albumLabel.includes('dale play records') || 
+                                      albumLabel.includes('dale play')
+              
+              if (!isDalePlayLabel) {
+                continue // Saltar álbumes que no son del label
+              }
+              
+              // Extraer artistas únicos de este álbum
+              if (albumDetails.artists && albumDetails.artists.length > 0) {
+                albumDetails.artists.forEach((artist: any) => {
+                  if (!seenArtistIds.has(artist.id) && artists.length < limit) {
+                    seenArtistIds.add(artist.id)
+                    artists.push({
+                      id: artist.id,
+                      name: artist.name,
+                      genres: [], // Los géneros se obtendrán después
+                      popularity: 0,
+                      image: undefined,
+                    })
+                  }
+                })
+              }
+            } catch (error) {
+              console.error(`Error obteniendo detalles del álbum "${album.name}":`, error)
             }
-          })
+          }
         }
       } catch (error) {
         console.error(`Error buscando álbumes con query "${query}":`, error)
