@@ -10,12 +10,11 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    // Obtener todos los datos del usuario en paralelo
+    // Obtener solo datos esenciales en paralelo
     const [
       topTracksResponse,
       topArtistsResponse,
       recentlyPlayedResponse,
-      playlistsResponse,
     ] = await Promise.all([
       // Top tracks (corto plazo - últimos 4 semanas)
       fetch("https://api.spotify.com/v1/me/top/tracks?limit=20&time_range=short_term", {
@@ -32,22 +31,16 @@ export async function GET(request: NextRequest) {
         headers: { Authorization: `Bearer ${accessToken}` },
         cache: 'no-store',
       }),
-      // Playlists del usuario
-      fetch("https://api.spotify.com/v1/me/playlists?limit=50", {
-        headers: { Authorization: `Bearer ${accessToken}` },
-        cache: 'no-store',
-      }),
     ])
 
     const topTracks = topTracksResponse.ok ? await topTracksResponse.json() : null
     const topArtists = topArtistsResponse.ok ? await topArtistsResponse.json() : null
     const recentlyPlayed = recentlyPlayedResponse.ok ? await recentlyPlayedResponse.json() : null
-    const playlists = playlistsResponse.ok ? await playlistsResponse.json() : null
 
-    // Obtener audio features de los top tracks
+    // Obtener audio features de los top tracks (BPM, energía, etc.)
     let audioFeatures = null
     if (topTracks?.items && topTracks.items.length > 0) {
-      const trackIds = topTracks.items.slice(0, 10).map((track: any) => track.id).join(',')
+      const trackIds = topTracks.items.slice(0, 20).map((track: any) => track.id).join(',')
       const audioFeaturesResponse = await fetch(
         `https://api.spotify.com/v1/audio-features?ids=${trackIds}`,
         {
@@ -62,7 +55,6 @@ export async function GET(request: NextRequest) {
       topTracks,
       topArtists,
       recentlyPlayed,
-      playlists,
       audioFeatures,
     })
   } catch (error) {
