@@ -91,7 +91,7 @@ ${labelData.artists.map(a => `- ${a.name}${a.genres.length > 0 ? ` (géneros: ${
 
 GÉNEROS DISPONIBLES EN EL LABEL:
 ${labelData.genres.length > 0 ? labelData.genres.join(", ") : "Variados"}`
-    : `El label "Dale Play Records" es un sello discográfico. Selecciona canciones que estén publicadas bajo este label.`
+    : `"Dale Play Records" es un SELLO DISCROGRÁFICO (record label). Todas las canciones que selecciones DEBEN estar publicadas bajo este sello discográfico y aparecer en su catálogo en Spotify.`
 
   const systemMessage = `Eres un experto en música y creación de playlists personalizadas para el sello discográfico "Dale Play Records".
 
