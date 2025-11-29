@@ -252,6 +252,7 @@ export default function PlaylistPrompt() {
     generateTracks(prompt).then((result) => {
       setTracks(result.tracks)
       setPlaylistName(result.playlistName)
+      setPlaylistDescription(result.description || "")
       setFlowState('preview')
     }).catch((error) => {
       const errorMessage = error instanceof Error ? error.message : "Try again"
