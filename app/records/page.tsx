@@ -215,38 +215,22 @@ export default function RecordsPage() {
             <p className="text-gray-400 text-lg">Connect with Spotify to view your records</p>
           </div>
         ) : (
-          <div className="w-full max-w-4xl mx-auto px-4">
-            <div className="text-center mb-8">
-              <div className="flex items-center justify-center gap-4 mb-4 flex-wrap">
-                <h1 className="text-white text-5xl font-bold tracking-tight" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
-                  Scale Your Playlist Creation
-                </h1>
-                <span 
-                  className="text-5xl"
-                  style={{ 
-                    color: "#ffffff",
-                    fontFamily: "var(--font-playfair), 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif",
-                    fontWeight: 300,
-                    letterSpacing: "0.15em",
-                    fontStyle: "italic",
-                  }}
-                >
-                  for Your Label
-                </span>
-              </div>
-              <p className="text-gray-400 text-lg">Create perfect playlists at scale for your record label</p>
-            </div>
+          <div className="w-full max-w-4xl mx-auto px-4 flex flex-col items-center">
+            {/* Título */}
+            <h1 className="text-white text-4xl font-bold text-center mb-8" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+              Scale Your Playlist Creation for Your Label
+            </h1>
 
             {/* Input centrado */}
-            <div className="w-full flex justify-center mb-8">
-              <form className="w-full max-w-2xl flex flex-col items-center gap-4">
+            <div className="w-full max-w-2xl mb-8">
+              <form className="w-full flex flex-col items-center gap-4">
                 <div
                   className="flex items-center gap-0 rounded-full transition-all duration-300 w-full"
                   style={{ backgroundColor: "#1a1a1a" }}
                 >
                   <input
                     type="text"
-                    placeholder="Describe the playlist you want…"
+                    placeholder="Describe the playlist you want to create…"
                     className="flex-1 px-6 py-4 bg-transparent text-white placeholder-gray-500 outline-none font-sans text-base"
                     style={{ color: "#ffffff" }}
                   />
@@ -274,8 +258,7 @@ export default function RecordsPage() {
             </div>
 
             {/* Tips debajo del input - centrados */}
-            <div className="w-full flex justify-center">
-              <div className="w-full max-w-2xl">
+            <div className="w-full max-w-2xl">
               <div className="flex items-center gap-2 mb-3">
                 <svg className="w-4 h-4" style={{ color: "#1DB954" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
