@@ -1,21 +1,21 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { extractDurationAndCalculateTracks } from "@/lib/openai"
-import { selectTracksFromCatalog } from "@/lib/openai-track-selection"
-import { getCachedDalePlayTracks, saveDalePlayTracksToCache } from "@/lib/supabase-daleplay-cache"
-import { searchDalePlayTracksOptimized } from "@/lib/search-daleplay-optimized"
+import { selectTracksWithOpenAI } from "@/lib/openai-track-selection"
+import { searchSpecificTracks } from "@/lib/search-specific-tracks"
 
 // Configurar tiempo máximo de ejecución: 300 segundos (5 minutos)
 export const maxDuration = 300
 
 /**
- * API Route para generar playlist usando OpenAI + Cache de Supabase
+ * API Route para generar playlist usando OpenAI
  * 
- * NUEVO FLUJO OPTIMIZADO:
- * 1. Leer tracks de Dale Play Records desde cache de Supabase (0 requests a Spotify)
- * 2. Si no hay cache o está expirado, buscar en Spotify y guardar en cache
- * 3. OpenAI selecciona los mejores tracks del catálogo según el prompt
- * 4. Retornar tracks seleccionados (ya tenemos toda la info)
+ * FLUJO OPTIMIZADO:
+ * 1. OpenAI selecciona tracks específicos basado en el prompt (0 requests a Spotify)
+ * 2. Buscamos SOLO esos tracks en Spotify
+ * 3. Retornamos tracks encontrados
+ * 
+ * Esto minimiza requests: solo buscamos lo que OpenAI seleccionó
  */
 export async function POST(request: NextRequest) {
   try {
@@ -45,86 +45,80 @@ export async function POST(request: NextRequest) {
     const maxTracksNeeded = extractDurationAndCalculateTracks(prompt.trim())
     console.log(`📊 Playlist solicitada: ${maxTracksNeeded} canciones`)
 
-    // 4. INTENTAR LEER TRACKS DEL CACHE DE SUPABASE
-    console.log(`🔍 Buscando tracks de Dale Play Records en cache...`)
-    let availableTracks = await getCachedDalePlayTracks()
-
-    // 5. SI NO HAY CACHE, BUSCAR EN SPOTIFY Y GUARDAR
-    if (!availableTracks || availableTracks.length === 0) {
-      console.log(`⚠️ Cache vacío o expirado. Buscando en Spotify...`)
-      
-      try {
-        // Buscar tracks en Spotify (esto hace varios requests pero solo 1 vez cada 24h)
-        availableTracks = await searchDalePlayTracksOptimized(accessToken, 100)
-        
-        if (!availableTracks || availableTracks.length === 0) {
-          return NextResponse.json(
-            { error: "No se encontraron tracks de Dale Play Records en Spotify" },
-            { status: 404 }
-          )
-        }
-
-        // Guardar en cache para las próximas 24 horas
-        await saveDalePlayTracksToCache(availableTracks)
-        console.log(`✅ Cache actualizado: ${availableTracks.length} tracks guardados en Supabase`)
-        
-      } catch (error) {
-        console.error("Error buscando tracks en Spotify:", error)
-        return NextResponse.json(
-          { 
-            error: "Error al buscar tracks de Dale Play Records en Spotify",
-            message: error instanceof Error ? error.message : "Error desconocido"
-          },
-          { status: 500 }
-        )
-      }
-    } else {
-      console.log(`✅ Cache hit: ${availableTracks.length} tracks disponibles de Dale Play Records`)
-    }
-
-    // 6. VALIDAR QUE TENGAMOS SUFICIENTES TRACKS
-    if (availableTracks.length < maxTracksNeeded) {
-      console.warn(`⚠️ Solo hay ${availableTracks.length} tracks disponibles, pero se pidieron ${maxTracksNeeded}`)
-      // Ajustar maxTracksNeeded al número de tracks disponibles
-      const adjustedMax = Math.min(maxTracksNeeded, availableTracks.length)
-      console.log(`📊 Ajustando a ${adjustedMax} canciones`)
-    }
-
-    // 7. OPENAI SELECCIONA LOS MEJORES TRACKS DEL CATÁLOGO
-    console.log(`🤖 OpenAI seleccionando ${maxTracksNeeded} canciones del catálogo...`)
-    const selection = await selectTracksFromCatalog(
+    // 4. OPENAI SELECCIONA TRACKS ESPECÍFICOS (0 requests a Spotify)
+    console.log(`🤖 OpenAI seleccionando ${maxTracksNeeded} canciones del label Dale Play Records...`)
+    const selection = await selectTracksWithOpenAI(
       prompt.trim(),
-      availableTracks,
-      Math.min(maxTracksNeeded, availableTracks.length)
+      "Dale Play Records",
+      maxTracksNeeded
     )
 
-    // 8. OBTENER LOS TRACKS SELECCIONADOS POR SUS IDs
-    const selectedTracks = availableTracks.filter(track => 
-      selection.selectedTrackIds.includes(track.id)
-    )
+    if (!selection.tracks || selection.tracks.length === 0) {
+      return NextResponse.json(
+        { error: "OpenAI no pudo generar una lista de canciones. Intenta con otro prompt." },
+        { status: 400 }
+      )
+    }
 
-    if (selectedTracks.length === 0) {
+    // 5. BUSCAR SOLO LOS TRACKS QUE OPENAI SELECCIONÓ
+    console.log(`🔍 Buscando ${selection.tracks.length} canciones específicas en Spotify...`)
+    
+    // Validar y preparar queries
+    const trackQueries = selection.tracks
+      .filter(t => {
+        const isValid = t && 
+          t.trackName && 
+          typeof t.trackName === 'string' && 
+          t.trackName.trim().length > 0 &&
+          t.artistName && 
+          typeof t.artistName === 'string' && 
+          t.artistName.trim().length > 0
+          
+        if (!isValid) {
+          console.warn(`[generate-playlist] ⚠️ Track inválido ignorado:`, t)
+        }
+        return isValid
+      })
+      .map(t => ({
+        trackName: String(t.trackName).trim(),
+        artistName: String(t.artistName).trim()
+      }))
+
+    if (trackQueries.length === 0) {
       return NextResponse.json(
         {
-          error: "OpenAI no pudo seleccionar tracks válidos. Intenta con otro prompt.",
-          selectedIds: selection.selectedTrackIds,
+          error: "No se recibieron canciones válidas de OpenAI. Intenta con otro prompt.",
+          selectedTracks: selection.tracks,
         },
         { status: 400 }
       )
     }
 
-    // 9. RETORNAR RESULTADOS
-    console.log(`✅ Playlist generada: ${selection.playlistName} con ${selectedTracks.length} canciones`)
+    // Buscar tracks en Spotify (SOLO estos, no pre-cargamos catálogo)
+    const tracks = await searchSpecificTracks(trackQueries, accessToken)
+
+    if (tracks.length === 0) {
+      return NextResponse.json(
+        {
+          error: "No se encontraron las canciones seleccionadas en Spotify. Intenta con otro prompt.",
+          selectedTracks: selection.tracks.map(t => `${t.trackName} - ${t.artistName}`),
+        },
+        { status: 404 }
+      )
+    }
+
+    // 6. RETORNAR RESULTADOS
+    console.log(`✅ Playlist generada: ${selection.playlistName} con ${tracks.length} canciones`)
     console.log(`📊 RESUMEN:`)
-    console.log(`   - Tracks disponibles en catálogo: ${availableTracks.length}`)
-    console.log(`   - Tracks seleccionados por OpenAI: ${selectedTracks.length}`)
-    console.log(`   - Requests a Spotify API: 0 (todo desde cache)`)
+    console.log(`   - Tracks sugeridos por OpenAI: ${selection.tracks.length}`)
+    console.log(`   - Tracks encontrados en Spotify: ${tracks.length}`)
+    console.log(`   - Requests a Spotify API: ${trackQueries.length} búsquedas`)
     
     return NextResponse.json({
       success: true,
       playlistName: selection.playlistName,
       description: selection.description,
-      tracks: selectedTracks,
+      tracks,
     })
     
   } catch (error) {
