@@ -25,44 +25,45 @@ export interface Artist {
 
 /**
  * Busca tracks del label "Dale Play"
- * Busca por artista y nombre de álbum/label
+ * Primero busca artistas, luego busca tracks de esos artistas
  */
-export async function searchDalePlayTracks(accessToken: string, limit: number = 50): Promise<Track[]> {
+export async function searchDalePlayTracks(
+  accessToken: string, 
+  limit: number = 50,
+  dalePlayArtists?: Artist[]
+): Promise<Track[]> {
   try {
     const tracks: Track[] = []
     const seenTrackIds = new Set<string>()
     
-    // Buscar tracks que mencionen "dale play" en varios formatos
-    // Spotify no tiene búsqueda directa por label, así que buscamos por texto general
-    const searchQueries = [
-      'dale play',
-      'Dale Play',
-      'DALEPLAY',
-      'daleplay',
-    ]
+    // Buscar los artistas de Dale Play si no se proporcionaron
+    const artists = dalePlayArtists || await searchDalePlayArtists(accessToken, 50)
     
-    for (const query of searchQueries) {
+    if (artists.length === 0) {
+      console.warn("No se encontraron artistas de Dale Play")
+    }
+    
+    // Buscar tracks de cada artista de Dale Play
+    for (const artist of artists) {
       if (tracks.length >= limit) break
       
       try {
-        // Buscar tracks
+        // Buscar tracks del artista
         const searchRes = await spotifyApiRequest(
-          `/search?q=${encodeURIComponent(query)}&type=track&limit=50&market=US`,
+          `/search?q=${encodeURIComponent(`artist:"${artist.name}"`)}&type=track&limit=20&market=US`,
           accessToken
         )
         const searchData = await searchRes.json()
         
         if (searchData.tracks?.items) {
           searchData.tracks.items.forEach((track: any) => {
-            // Verificar que el track tenga relación con Dale Play
-            // Por nombre de artista, álbum, o en el nombre del track
-            const trackText = `${track.name} ${track.artists?.[0]?.name || ''} ${track.album?.name || ''}`.toLowerCase()
-            const isDalePlay = trackText.includes('dale play') || 
-                               trackText.includes('daleplay') ||
-                               track.artists?.some((a: any) => a.name.toLowerCase().includes('dale play')) ||
-                               track.album?.name?.toLowerCase().includes('dale play')
+            // Verificar que el artista del track sea de Dale Play
+            const trackArtistName = track.artists?.[0]?.name?.toLowerCase() || ''
+            const isFromDalePlayArtist = dalePlayArtists.some(dpArtist => 
+              dpArtist.name.toLowerCase() === trackArtistName
+            )
             
-            if (isDalePlay && !seenTrackIds.has(track.id)) {
+            if (isFromDalePlayArtist && !seenTrackIds.has(track.id)) {
               seenTrackIds.add(track.id)
               tracks.push({
                 id: track.id,
@@ -78,7 +79,54 @@ export async function searchDalePlayTracks(accessToken: string, limit: number = 
           })
         }
       } catch (error) {
-        console.error(`Error buscando tracks con query "${query}":`, error)
+        console.error(`Error buscando tracks del artista "${artist.name}":`, error)
+      }
+    }
+    
+    // Si no encontramos suficientes tracks, buscar también por texto general
+    if (tracks.length < limit) {
+      const searchQueries = [
+        'label:"dale play"',
+        'dale play',
+        'Dale Play',
+      ]
+      
+      for (const query of searchQueries) {
+        if (tracks.length >= limit) break
+        
+        try {
+          const searchRes = await spotifyApiRequest(
+            `/search?q=${encodeURIComponent(query)}&type=track&limit=50&market=US`,
+            accessToken
+          )
+          const searchData = await searchRes.json()
+          
+          if (searchData.tracks?.items) {
+            searchData.tracks.items.forEach((track: any) => {
+              // Solo incluir si el artista es de Dale Play
+              const trackArtistName = track.artists?.[0]?.name?.toLowerCase() || ''
+              const isFromDalePlayArtist = artists.some(dpArtist => 
+                dpArtist.name.toLowerCase() === trackArtistName
+              )
+              
+              if (isFromDalePlayArtist && !seenTrackIds.has(track.id)) {
+                seenTrackIds.add(track.id)
+                tracks.push({
+                  id: track.id,
+                  name: track.name,
+                  artist: track.artists?.[0]?.name || "Unknown",
+                  album: track.album?.name || "Unknown",
+                  image: track.album?.images?.[0]?.url || "/icon.png",
+                  duration_ms: track.duration_ms || 0,
+                  preview_url: track.preview_url || undefined,
+                  uri: track.uri,
+                })
+              }
+            })
+          }
+        } catch (error) {
+          console.error(`Error buscando tracks con query "${query}":`, error)
+        }
       }
     }
     

@@ -31,11 +31,9 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Buscar artistas y tracks del label Dale Play
-    const [dalePlayArtists, allDalePlayTracks] = await Promise.all([
-      searchDalePlayArtists(accessToken, 100),
-      searchDalePlayTracks(accessToken, 200), // Buscar más tracks para tener opciones
-    ])
+    // 3. Buscar artistas primero, luego tracks del label Dale Play
+    const dalePlayArtists = await searchDalePlayArtists(accessToken, 100)
+    const allDalePlayTracks = await searchDalePlayTracks(accessToken, 200, dalePlayArtists) // Pasar artistas para evitar búsqueda duplicada
 
     // Extraer géneros de los artistas de Dale Play
     const dalePlayGenres: string[] = []
@@ -59,7 +57,21 @@ export async function POST(request: NextRequest) {
     })
 
     // 5. Filtrar tracks de Dale Play basado en los criterios de Gemini
-    let filteredTracks = allDalePlayTracks
+    // Crear un Set de nombres de artistas de Dale Play para filtrado rápido
+    const dalePlayArtistNames = new Set(
+      dalePlayArtists.map(artist => artist.name.toLowerCase())
+    )
+    
+    // Asegurar que TODOS los tracks sean de artistas de Dale Play
+    let filteredTracks = allDalePlayTracks.filter(track => {
+      const trackArtistLower = track.artist.toLowerCase()
+      return dalePlayArtistNames.has(trackArtistLower) ||
+             Array.from(dalePlayArtistNames).some(dalePlayArtist => 
+               trackArtistLower.includes(dalePlayArtist) || 
+               dalePlayArtist.includes(trackArtistLower)
+             )
+    })
+    
     const maxTracks = criteria.criteria.maxTracks || 30
 
     // Filtrar por géneros si están especificados en los criterios

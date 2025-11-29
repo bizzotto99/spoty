@@ -45,7 +45,6 @@ export default function PlaylistPrompt() {
   const [playlistName, setPlaylistName] = useState("")
   const [isEditingName, setIsEditingName] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState("Analyzing your request...")
-  const [showOptionalModal, setShowOptionalModal] = useState(false)
   const { isAuthenticated, user, isLoading, login, logout } = useSpotifyAuth()
 
   // Check if there's an error or success in the URL (from callback)
@@ -452,130 +451,6 @@ export default function PlaylistPrompt() {
         </form>
         )}
 
-        {isAuthenticated && flowState === 'idle' && (
-          <div className="w-full max-w-2xl mx-auto px-4 mt-8">
-            <div className="flex items-center justify-between mb-3">
-              <div className="flex items-center gap-2">
-                <HelpCircle className="w-4 h-4" style={{ color: "#1DB954" }} />
-                <p className="text-gray-400 text-sm">Tips para mejores resultados</p>
-              </div>
-              <button
-                type="button"
-                onClick={() => setShowOptionalModal(true)}
-                className="text-xs text-gray-400 hover:text-[#1DB954] transition-colors"
-              >
-                Ver opciones avanzadas →
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-              <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(29, 185, 84, 0.1)" }}>
-                    <Music className="w-4 h-4" style={{ color: "#1DB954" }} />
-                  </div>
-                  <p className="text-white text-sm font-medium">Actividad <span className="text-red-400">*</span></p>
-                </div>
-                <p className="text-gray-400 text-xs">correr, estudiar, trabajar, relajarte...</p>
-              </div>
-              
-              <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(29, 185, 84, 0.1)" }}>
-                    <div className="w-4 h-4 border-2 rounded" style={{ borderColor: "#1DB954" }} />
-                  </div>
-                  <p className="text-white text-sm font-medium">Tiempo <span className="text-red-400">*</span></p>
-                </div>
-                <p className="text-gray-400 text-xs">45 minutos, 1 hora, 2 horas...</p>
-              </div>
-            </div>
-            
-            <div className="mt-3 p-3 rounded-xl" style={{ backgroundColor: "rgba(29, 185, 84, 0.05)", border: "1px solid rgba(29, 185, 84, 0.2)" }}>
-              <p className="text-gray-400 text-xs mb-1.5">💡 Ejemplo:</p>
-              <p className="text-white text-sm italic" style={{ color: "#1DB954" }}>
-                "Una playlist para ir a jugar al fútbol de aprox 45 minutos, con canciones de mundiales"
-              </p>
-            </div>
-          </div>
-        )}
-
-        {/* Modal de opciones opcionales */}
-        <Dialog open={showOptionalModal} onOpenChange={setShowOptionalModal}>
-          <DialogContent
-            className="sm:max-w-lg rounded-2xl"
-            showCloseButton={false}
-            style={{
-              backgroundColor: "#1a1a1a",
-              border: "1px solid #333",
-              borderRadius: "1.5rem",
-            }}
-          >
-            <DialogHeader>
-              <DialogTitle className="text-white text-xl font-semibold">
-                Opciones Avanzadas (Opcional)
-              </DialogTitle>
-              <DialogDescription className="text-gray-400 pt-2">
-                Puedes especificar estos detalles para personalizar aún más tu playlist
-              </DialogDescription>
-            </DialogHeader>
-            
-            <div className="flex flex-col gap-4 py-4">
-              <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-                <p className="text-white text-sm font-medium mb-1">Intensidad</p>
-                <p className="text-gray-400 text-xs">más chill, entrenamiento fuerte, media, alta...</p>
-              </div>
-              
-              <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-                <p className="text-white text-sm font-medium mb-1">Género</p>
-                <p className="text-gray-400 text-xs">rock, pop, reggaeton, electrónica, jazz...</p>
-              </div>
-              
-              <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-                <p className="text-white text-sm font-medium mb-1">Artista</p>
-                <p className="text-gray-400 text-xs">artista específico que quieras incluir</p>
-              </div>
-              
-              <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-                <p className="text-white text-sm font-medium mb-1">Canciones en particular</p>
-                <p className="text-gray-400 text-xs">canciones específicas que quieras incluir</p>
-              </div>
-              
-              <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-                <p className="text-white text-sm font-medium mb-1">Restricciones</p>
-                <p className="text-gray-400 text-xs">ej: "no quiero Duki", "sin reggaeton"</p>
-              </div>
-              
-              <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-                <p className="text-white text-sm font-medium mb-1">Estado de ánimo</p>
-                <p className="text-gray-400 text-xs">feliz, triste, motivado, nostálgico...</p>
-              </div>
-              
-              <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-                <p className="text-white text-sm font-medium mb-1">Idioma</p>
-                <p className="text-gray-400 text-xs">español, inglés, o ambos</p>
-              </div>
-            </div>
-
-            <DialogFooter>
-              <button
-                onClick={() => setShowOptionalModal(false)}
-                className="px-6 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
-                style={{
-                  backgroundColor: "#1DB954",
-                  color: "#000",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.backgroundColor = "#1ed760"
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.backgroundColor = "#1DB954"
-                }}
-              >
-                Entendido
-              </button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
 
         {flowState === 'loading' && (
           <div className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center gap-6">
@@ -606,12 +481,43 @@ export default function PlaylistPrompt() {
             {/* Card de Playlist */}
             <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
               {/* Cuadrado de playlist (como Spotify) */}
-              <div className="w-full sm:w-72 h-72 rounded-lg flex-shrink-0 shadow-2xl overflow-hidden">
-                <img
-                  src="/icon.png"
-                  alt="Playlist"
-                  className="w-full h-full object-cover brightness-110"
-                />
+              <div className="w-full sm:w-72 h-72 rounded-lg flex-shrink-0 shadow-2xl overflow-hidden" style={{ backgroundColor: "#1a1a1a" }}>
+                {tracks.length > 0 ? (
+                  <div className="w-full h-full grid grid-cols-2 grid-rows-2">
+                    {[0, 1, 2, 3].map((index) => (
+                      <div key={index} className="w-full h-full overflow-hidden">
+                        {tracks[index]?.image ? (
+                          <img
+                            src={tracks[index].image}
+                            alt={tracks[index].name}
+                            className="w-full h-full object-cover"
+                            onError={(e) => {
+                              const target = e.target as HTMLImageElement;
+                              target.style.display = "none";
+                              target.parentElement!.style.backgroundColor = "#1a1a1a";
+                            }}
+                          />
+                        ) : (
+                          <div className="w-full h-full flex items-center justify-center" style={{ backgroundColor: "#1a1a1a" }}>
+                            <Music className="w-8 h-8" style={{ color: "#333" }} />
+                          </div>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="w-full h-full flex items-center justify-center">
+                    <img
+                      src="/icon.png"
+                      alt="Playlist"
+                      className="w-full h-full object-cover brightness-110"
+                      onError={(e) => {
+                        const target = e.target as HTMLImageElement;
+                        target.src = "/icon.png";
+                      }}
+                    />
+                  </div>
+                )}
               </div>
 
               {/* Información de la playlist */}
