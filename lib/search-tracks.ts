@@ -221,12 +221,38 @@ export async function searchTracksInSpotify(
         }
       }
       
-      // Filtrar tracks por BPM
+      // Filtrar tracks por BPM (ESTRICTO - solo incluir tracks dentro del rango)
+      // IMPORTANTE: Todas las canciones en Spotify tienen audio features (BPM),
+      // pero lo obtenemos en una llamada separada a /audio-features
+      const tracksBeforeFilter = finalTracks.length
       finalTracks = finalTracks.filter(track => {
         const tempo = audioFeaturesMap.get(track.id)
-        if (!tempo) return true // Si no tenemos el tempo, incluir el track
-        return tempo >= minBPM && tempo <= maxBPM
+        
+        // Si no tenemos el tempo en el mapa, significa que:
+        // 1. La llamada a audio-features falló para ese track, O
+        // 2. Spotify devolvió null para ese track (muy raro, pero puede pasar)
+        // En ambos casos, EXCLUIMOS el track porque el BPM es crucial para la actividad
+        if (!tempo) {
+          console.warn(`Track "${track.name}" no tiene BPM disponible, excluido del filtrado`)
+          return false
+        }
+        
+        // Solo incluir si está dentro del rango BPM requerido
+        const isInRange = tempo >= minBPM && tempo <= maxBPM
+        if (!isInRange) {
+          console.log(`Track "${track.name}" tiene BPM ${tempo.toFixed(1)} (fuera de rango ${minBPM}-${maxBPM})`)
+        }
+        return isInRange
       })
+      
+      // Log informativo
+      const filteredOut = tracksBeforeFilter - finalTracks.length
+      console.log(`Filtrado por BPM ${minBPM}-${maxBPM}: ${finalTracks.length} tracks cumplen (${filteredOut} excluidos)`)
+      
+      // Si después del filtrado no hay suficientes tracks, se buscarán más en iteraciones siguientes
+      if (finalTracks.length < maxTracks) {
+        console.log(`Necesitamos ${maxTracks} tracks, tenemos ${finalTracks.length}. Se buscarán más.`)
+      }
     }
     
     // Filtrar tracks según excludeGenres si está definido

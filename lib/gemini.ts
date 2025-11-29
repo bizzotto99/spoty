@@ -49,23 +49,24 @@ export async function callGeminiAPI(
   // Buscar actividad en el prompt
   const activities = findMatchingActivities(userPrompt)
   if (activities.length > 0) {
-    // Extraer intensidad del prompt si existe
+    // Extraer intensidad del prompt si existe (buscar todas las coincidencias, no solo la primera)
     const intensityKeywords = {
-      'chill': 'más chill',
+      'muy alta': 'muy alta',
+      'entrenamiento fuerte': 'entrenamiento fuerte',
       'más chill': 'más chill',
+      'chill': 'más chill',
       'relajada': 'relajada',
       'suave': 'suave',
       'media': 'media',
       'moderada': 'moderada',
       'alta': 'alta',
       'fuerte': 'fuerte',
-      'entrenamiento fuerte': 'entrenamiento fuerte',
       'intensa': 'intensa',
-      'muy alta': 'muy alta',
     }
     
     let userIntensity: string | undefined
     const promptLower = userPrompt.toLowerCase()
+    // Buscar en orden de especificidad (más específico primero)
     for (const [key, value] of Object.entries(intensityKeywords)) {
       if (promptLower.includes(key)) {
         userIntensity = value
@@ -73,12 +74,102 @@ export async function callGeminiAPI(
       }
     }
     
-    // Intentar obtener BPM para la actividad
-    const bpmData = getBPMForActivity(activities[0].actividad, userIntensity)
+    // Si hay múltiples actividades, intentar elegir la mejor según la intensidad
+    let selectedActivity = activities[0]
+    if (activities.length > 1 && userIntensity) {
+      // Si hay intensidad, buscar la actividad que mejor coincida
+      const intensityMap: Record<string, string[]> = {
+        'más chill': ['Baja', 'Muy baja'],
+        'relajada': ['Baja', 'Muy baja'],
+        'suave': ['Baja', 'Baja-Moderada'],
+        'media': ['Moderada'],
+        'moderada': ['Moderada'],
+        'alta': ['Alta', 'Moderada-Alta'],
+        'fuerte': ['Alta', 'Muy alta'],
+        'entrenamiento fuerte': ['Alta', 'Muy alta'],
+        'intensa': ['Alta', 'Muy alta'],
+        'muy alta': ['Muy alta'],
+      }
+      
+      const targetIntensities = intensityMap[userIntensity] || []
+      if (targetIntensities.length > 0) {
+        const matchingActivity = activities.find(act => 
+          targetIntensities.includes(act.intensidad)
+        )
+        if (matchingActivity) {
+          selectedActivity = matchingActivity
+        }
+      }
+    }
+    
+    // Intentar obtener BPM para la actividad seleccionada
+    const bpmData = getBPMForActivity(selectedActivity.actividad, userIntensity)
     if (bpmData) {
       activityBPM = { min: bpmData.min, max: bpmData.max }
-      identifiedActivity = activities[0].actividad
+      identifiedActivity = selectedActivity.actividad
     }
+  }
+
+  // Extraer tiempo del prompt y calcular cantidad de canciones
+  // Buscar patrones como "45 minutos", "1 hora", "30 min", "2 horas", etc.
+  const timePatterns = [
+    // Patrón para "1 hora y 30 minutos" o "1h 30min" o "1 hora, 30 minutos" o "1h30min"
+    { 
+      regex: /(\d+)\s*(?:hora|horas|hr|hrs|h)\s*(?:y|,|\s)?\s*(\d+)\s*(?:minuto|minutos|min|mins)/i, 
+      multiplier: 60,
+      hasMinutes: true
+    },
+    // Patrón para solo horas: "1 hora", "2 horas", "1h" (sin minutos después)
+    { 
+      regex: /(\d+)\s*(?:hora|horas|hr|hrs|h)(?!\s*(?:y|,|\d|minuto|minutos|min|mins))/i, 
+      multiplier: 60,
+      hasMinutes: false
+    },
+    // Patrón para "aprox 45 minutos" o "aproximadamente 30 minutos"
+    { 
+      regex: /aprox(?:imadamente)?\s*(\d+)\s*(?:minuto|minutos|min|mins)/i, 
+      multiplier: 1,
+      hasMinutes: false
+    },
+    // Patrón para "45 minutos" o "30 min" (verificar que no tenga "aprox" antes)
+    { 
+      regex: /(\d+)\s*(?:minuto|minutos|min|mins)/i, 
+      multiplier: 1,
+      hasMinutes: false,
+      checkNoAprox: true
+    },
+  ]
+
+  let totalMinutes: number | null = null
+  const promptLower = userPrompt.toLowerCase()
+  
+  for (const pattern of timePatterns) {
+    const match = promptLower.match(pattern.regex)
+    if (match) {
+      // Si el patrón requiere verificar que no tenga "aprox" antes
+      if (pattern.checkNoAprox) {
+        const matchIndex = promptLower.indexOf(match[0])
+        const beforeMatch = promptLower.substring(Math.max(0, matchIndex - 20), matchIndex)
+        if (beforeMatch.includes('aprox')) {
+          continue // Saltar este match, ya fue capturado por el patrón de "aprox"
+        }
+      }
+      
+      const hours = parseInt(match[1] || '0', 10)
+      const minutes = pattern.hasMinutes ? parseInt(match[2] || '0', 10) : 0
+      totalMinutes = hours * pattern.multiplier + minutes
+      break
+    }
+  }
+
+  // Calcular cantidad de canciones basado en el tiempo
+  // Asumimos ~3.5 minutos por canción en promedio
+  let calculatedMaxTracks: number | null = null
+  if (totalMinutes) {
+    const avgSongDurationMinutes = 3.5
+    calculatedMaxTracks = Math.ceil(totalMinutes / avgSongDurationMinutes)
+    // Limitar entre 10 y 100 canciones
+    calculatedMaxTracks = Math.max(10, Math.min(100, calculatedMaxTracks))
   }
 
   // Construir el prompt para Gemini
@@ -86,6 +177,7 @@ export async function callGeminiAPI(
 
 PROMPT DEL USUARIO: "${userPrompt}"
 ${identifiedActivity ? `ACTIVIDAD IDENTIFICADA: ${identifiedActivity} (BPM recomendado: ${activityBPM?.min}-${activityBPM?.max})` : ''}
+${totalMinutes ? `DURACIÓN SOLICITADA: ${totalMinutes} minutos (${calculatedMaxTracks} canciones aproximadamente)` : ''}
 
 DATOS DEL USUARIO DE SPOTIFY:
 - Géneros favoritos: ${userData.topGenres.join(", ") || "No especificados"}
@@ -110,8 +202,8 @@ INSTRUCCIONES:
      - mood: "upbeat" o "mellow" (opcional)
      - artists: Array de nombres de artistas a incluir (opcional, máximo 3)
      - excludeGenres: Array de géneros a excluir (opcional)
-     - maxTracks: Número máximo de tracks (entre 15 y 50, por defecto 30)
-     - bpmRange: [minBPM, maxBPM] ${activityBPM ? `DEBE ser [${activityBPM.min}, ${activityBPM.max}]` : 'si es relevante (opcional)'}
+     - maxTracks: Número máximo de tracks ${calculatedMaxTracks ? `DEBE ser ${calculatedMaxTracks} para cumplir con la duración de ${totalMinutes} minutos` : '(entre 15 y 50, por defecto 30)'}
+     - bpmRange: [minBPM, maxBPM] ${activityBPM ? `⚠️ OBLIGATORIO: DEBE ser exactamente [${activityBPM.min}, ${activityBPM.max}]. NO uses otro rango.` : 'si es relevante (opcional)'}
 
 IMPORTANTE: Responde SOLO con un JSON válido, sin texto adicional antes o después.
 
@@ -198,13 +290,21 @@ EJEMPLO DE RESPUESTA:
       criteria.description = `Playlist personalizada: ${criteria.playlistName}`
     }
 
-    if (!criteria.criteria.maxTracks) {
+    // Si se calculó maxTracks basado en el tiempo, usarlo (tiene prioridad)
+    if (calculatedMaxTracks) {
+      criteria.criteria.maxTracks = calculatedMaxTracks
+    } else if (!criteria.criteria.maxTracks) {
       criteria.criteria.maxTracks = 30
     }
 
-    // Si identificamos una actividad con BPM, asegurar que se use
-    if (activityBPM && !criteria.criteria.bpmRange) {
+    // Si identificamos una actividad con BPM, SIEMPRE forzar el bpmRange (CRUCIAL)
+    // Esto es OBLIGATORIO - no es opcional
+    if (activityBPM) {
       criteria.criteria.bpmRange = [activityBPM.min, activityBPM.max]
+      console.log(`⚠️ BPM OBLIGATORIO para actividad "${identifiedActivity}": ${activityBPM.min}-${activityBPM.max} BPM`)
+    } else if (criteria.criteria.bpmRange) {
+      // Si Gemini sugirió un bpmRange pero no hay actividad, mantenerlo
+      console.log(`BPM sugerido por Gemini: ${criteria.criteria.bpmRange[0]}-${criteria.criteria.bpmRange[1]} BPM`)
     }
 
     return criteria
@@ -212,6 +312,7 @@ EJEMPLO DE RESPUESTA:
     console.error("Error llamando a Gemini:", error)
     
     // Si falla, devolver criterios por defecto basados en el prompt
+    // SIEMPRE incluir BPM si hay actividad identificada (CRUCIAL)
     const fallbackCriteria: GeminiPlaylistCriteria = {
       playlistName: userPrompt.length > 50 ? userPrompt.substring(0, 50) : userPrompt,
       description: `Playlist: ${userPrompt}`,
@@ -220,8 +321,14 @@ EJEMPLO DE RESPUESTA:
         energy: userData.musicPreferences.energy,
         tempo: userData.musicPreferences.tempo,
         mood: userData.musicPreferences.mood,
-        maxTracks: 30,
+        maxTracks: calculatedMaxTracks || 30,
+        // BPM es OBLIGATORIO si hay actividad
+        ...(activityBPM ? { bpmRange: [activityBPM.min, activityBPM.max] } : {}),
       },
+    }
+    
+    if (activityBPM) {
+      console.log(`FALLBACK: BPM OBLIGATORIO para actividad: ${identifiedActivity} = ${activityBPM.min}-${activityBPM.max} BPM`)
     }
 
     return fallbackCriteria

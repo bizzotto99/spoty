@@ -21,6 +21,7 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
+import { validatePrompt } from "@/lib/prompt-validator"
 
 interface Track {
   id: string
@@ -133,6 +134,28 @@ export default function PlaylistPrompt() {
         duration: 3000,
       })
       return
+    }
+
+    // Validar campos obligatorios
+    const validation = validatePrompt(prompt.trim())
+    
+    if (!validation.isValid) {
+      const errorMessage = validation.errors.length === 1 
+        ? validation.errors[0]
+        : "Faltan campos obligatorios"
+      const errorDescription = validation.errors.join(". ")
+      
+      toast.error(errorMessage, {
+        description: errorDescription,
+        duration: 5000,
+      })
+      return
+    }
+
+    // Mostrar warnings si existen (pero no bloquear)
+    if (validation.warnings.length > 0) {
+      // Los warnings se pueden mostrar pero no bloquean el submit
+      console.log("Warnings:", validation.warnings)
     }
 
     // Paso 1: Loading/Generación
@@ -417,13 +440,13 @@ export default function PlaylistPrompt() {
               </button>
             </div>
             
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(29, 185, 84, 0.1)" }}>
                     <Music className="w-4 h-4" style={{ color: "#1DB954" }} />
                   </div>
-                  <p className="text-white text-sm font-medium">Actividad</p>
+                  <p className="text-white text-sm font-medium">Actividad <span className="text-red-400">*</span></p>
                 </div>
                 <p className="text-gray-400 text-xs">correr, estudiar, trabajar, relajarte...</p>
               </div>
@@ -431,19 +454,9 @@ export default function PlaylistPrompt() {
               <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
                 <div className="flex items-center gap-2 mb-2">
                   <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(29, 185, 84, 0.1)" }}>
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: "#1DB954" }} />
-                  </div>
-                  <p className="text-white text-sm font-medium">Intensidad</p>
-                </div>
-                <p className="text-gray-400 text-xs">más chill, entrenamiento fuerte, media...</p>
-              </div>
-              
-              <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
-                <div className="flex items-center gap-2 mb-2">
-                  <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(29, 185, 84, 0.1)" }}>
                     <div className="w-4 h-4 border-2 rounded" style={{ borderColor: "#1DB954" }} />
                   </div>
-                  <p className="text-white text-sm font-medium">Tiempo</p>
+                  <p className="text-white text-sm font-medium">Tiempo <span className="text-red-400">*</span></p>
                 </div>
                 <p className="text-gray-400 text-xs">45 minutos, 1 hora, 2 horas...</p>
               </div>
@@ -479,6 +492,11 @@ export default function PlaylistPrompt() {
             </DialogHeader>
             
             <div className="flex flex-col gap-4 py-4">
+              <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+                <p className="text-white text-sm font-medium mb-1">Intensidad</p>
+                <p className="text-gray-400 text-xs">más chill, entrenamiento fuerte, media, alta...</p>
+              </div>
+              
               <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
                 <p className="text-white text-sm font-medium mb-1">Género</p>
                 <p className="text-gray-400 text-xs">rock, pop, reggaeton, electrónica, jazz...</p>
