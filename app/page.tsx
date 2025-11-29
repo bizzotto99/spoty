@@ -403,6 +403,20 @@ export default function PlaylistPrompt() {
       </nav>
 
       <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-8">
+        <div className="text-center mb-8">
+          <span 
+            className="text-5xl"
+            style={{ 
+              color: "#ffffff",
+              fontFamily: "var(--font-playfair), 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif",
+              fontWeight: 400,
+              letterSpacing: "0.15em",
+              fontStyle: "italic",
+            }}
+          >
+            Records
+          </span>
+        </div>
         {flowState === 'idle' && (
         <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center gap-4">
           <h2 className="text-white text-2xl font-medium text-center mb-2" style={{ fontFamily: "system-ui, sans-serif" }}>
