@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
-import { callOpenAIAPI } from "@/lib/openai"
+import { callOpenAIAPI, extractDurationAndCalculateTracks } from "@/lib/openai"
 import { searchDalePlayTracks, searchDalePlayArtists } from "@/lib/search-daleplay"
 import { spotifyApiRequest } from "@/lib/spotify"
 
@@ -64,10 +64,15 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 3. Buscar artistas y tracks del label "Dale Play Records" (optimizado)
-    console.log("🔍 Buscando artistas y tracks de Dale Play Records...")
-    const dalePlayArtists = await searchDalePlayArtists(accessToken, 15) // Reducido para menos requests
-    const allDalePlayTracks = await searchDalePlayTracks(accessToken, 50) // Reducido de 200 a 50 tracks
+    // 3. Calcular cantidad de tracks necesarios primero
+    const maxTracksNeeded = extractDurationAndCalculateTracks(prompt.trim())
+
+    // 4. Buscar artistas y tracks del label "Dale Play Records" (optimizado)
+    // Buscar solo un poco más de tracks de los necesarios (margen pequeño para tener opciones después del filtrado)
+    const tracksToSearch = Math.min(25, Math.max(maxTracksNeeded + 5, 15)) // Máximo 25, mínimo 15, o maxTracks+5 si es mayor
+    console.log(`🔍 Buscando artistas y ${tracksToSearch} tracks de Dale Play Records (necesitamos ${maxTracksNeeded})...`)
+    const dalePlayArtists = await searchDalePlayArtists(accessToken, 10) // Reducido de 15 a 10
+    const allDalePlayTracks = await searchDalePlayTracks(accessToken, tracksToSearch) // Solo buscar lo necesario
 
     // Extraer géneros de los artistas de Dale Play
     const dalePlayGenres: string[] = []
@@ -113,7 +118,7 @@ export async function POST(request: NextRequest) {
              )
     })
     
-    const maxTracks = criteria.criteria.maxTracks || 30
+    const finalMaxTracks = criteria.criteria.maxTracks || maxTracksNeeded
 
     // Filtrar por géneros si están especificados en los criterios
     if (criteria.criteria.genres && criteria.criteria.genres.length > 0) {
@@ -222,7 +227,7 @@ export async function POST(request: NextRequest) {
     const maxConsecutiveSameArtist = 2
 
     for (const track of shuffledTracks) {
-      if (selectedTracks.length >= maxTracks) break
+      if (selectedTracks.length >= finalMaxTracks) break
       
       const artistKey = track.artist.toLowerCase()
       const recentCount = recentArtists.filter(a => a === artistKey).length
@@ -234,7 +239,7 @@ export async function POST(request: NextRequest) {
       
       // Limitar cantidad total de canciones por artista
       const artistTrackCount = artistCountMap.get(artistKey) || 0
-      const maxTracksPerArtist = maxTracks > 30 ? 5 : 3
+      const maxTracksPerArtist = finalMaxTracks > 30 ? 5 : 3
       
       if (artistTrackCount >= maxTracksPerArtist) {
         continue
@@ -252,9 +257,9 @@ export async function POST(request: NextRequest) {
     }
 
     // Si no alcanzamos el número deseado, agregar tracks restantes
-    if (selectedTracks.length < maxTracks) {
+    if (selectedTracks.length < finalMaxTracks) {
       for (const track of shuffledTracks) {
-        if (selectedTracks.length >= maxTracks) break
+        if (selectedTracks.length >= finalMaxTracks) break
         if (!selectedTracks.find(t => t.id === track.id)) {
           selectedTracks.push(track)
         }

@@ -50,9 +50,9 @@ export async function searchDalePlayTracks(
       if (tracks.length >= limit) break
       
       try {
-        // Buscar álbumes (reducir límite a 20 para hacer menos requests)
+        // Buscar álbumes (reducir límite a 10 para hacer menos requests)
         const albumSearchRes = await spotifyApiRequest(
-          `/search?q=${encodeURIComponent(query)}&type=album&limit=20&market=US`,
+          `/search?q=${encodeURIComponent(query)}&type=album&limit=10&market=US`,
           accessToken
         )
         const albumSearchData = await albumSearchRes.json()
