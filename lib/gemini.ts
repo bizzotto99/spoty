@@ -227,10 +227,21 @@ EJEMPLO DE RESPUESTA:
   }
 }`
 
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1/models/gemini-pro:generateContent?key=${GEMINI_API_KEY}`,
-      {
+  // Lista de modelos a intentar, en orden de preferencia
+  const modelsToTry = [
+    { name: "gemini-1.5-flash", version: "v1beta" },
+    { name: "gemini-1.5-pro", version: "v1beta" },
+    { name: "gemini-pro", version: "v1" },
+    { name: "gemini-1.0-pro", version: "v1" },
+  ]
+
+  let lastError: Error | null = null
+
+  for (const model of modelsToTry) {
+    try {
+      const url = `https://generativelanguage.googleapis.com/${model.version}/models/${model.name}:generateContent?key=${GEMINI_API_KEY}`
+      
+      const response = await fetch(url, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -246,96 +257,116 @@ EJEMPLO DE RESPUESTA:
             },
           ],
         }),
-      }
-    )
+      })
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error("Error en Gemini API:", errorText)
-      console.error("API Key usado (primeros 10 chars):", GEMINI_API_KEY?.substring(0, 10))
-      console.error("Status:", response.status)
-      
-      // Si es un error 400 con API key inválida, dar información más útil
-      if (response.status === 400) {
-        try {
-          const errorJson = JSON.parse(errorText)
-          if (errorJson.error?.code === 400 && errorJson.error?.message?.includes("API key")) {
-            throw new Error(
-              `API key de Gemini inválida. Verifica que:\n` +
-              `1. La variable GEMINI_API_KEY esté configurada en Vercel\n` +
-              `2. El valor sea correcto (debe empezar con "AIza")\n` +
-              `3. Hayas hecho un nuevo deploy después de agregar la variable\n` +
-              `Error: ${errorJson.error?.message}`
-            )
-          }
-        } catch (e) {
-          // Si no se puede parsear el JSON, continuar con el error original
+      if (!response.ok) {
+        const errorText = await response.text()
+        console.error(`Modelo ${model.name} (${model.version}) no disponible:`, response.status, errorText)
+        
+        // Si es 404, el modelo no está disponible, intentar el siguiente
+        if (response.status === 404) {
+          lastError = new Error(`Modelo ${model.name} no disponible (404)`)
+          continue // Intentar el siguiente modelo
         }
+        
+        // Si es un error 400 con API key inválida, lanzar error inmediatamente
+        if (response.status === 400) {
+          try {
+            const errorJson = JSON.parse(errorText)
+            if (errorJson.error?.code === 400 && errorJson.error?.message?.includes("API key")) {
+              throw new Error(
+                `API key de Gemini inválida. Verifica que:\n` +
+                `1. La variable GEMINI_API_KEY esté configurada en Vercel\n` +
+                `2. El valor sea correcto\n` +
+                `3. Hayas hecho un nuevo deploy después de agregar la variable\n` +
+                `Error: ${errorJson.error?.message}`
+              )
+            }
+          } catch (e) {
+            // Si no se puede parsear el JSON, continuar con el error original
+          }
+        }
+        
+        // Para otros errores, intentar el siguiente modelo también
+        lastError = new Error(`Gemini API error con modelo ${model.name}: ${response.status} ${errorText}`)
+        continue
       }
+
+      // Si llegamos aquí, la respuesta fue exitosa
+      console.log(`✅ Modelo ${model.name} (${model.version}) funcionó correctamente`)
       
-      throw new Error(`Gemini API error: ${response.status} ${errorText}`)
+      const data = await response.json()
+
+      // Extraer el texto de la respuesta
+      const responseText =
+        data.candidates?.[0]?.content?.parts?.[0]?.text ||
+        data.candidates?.[0]?.content?.parts?.[0]?.text ||
+        ""
+
+      if (!responseText) {
+        throw new Error("No se recibió respuesta de Gemini")
+      }
+
+      // Intentar parsear el JSON de la respuesta
+      // Gemini a veces envuelve el JSON en markdown, así que lo limpiamos
+      let jsonText = responseText.trim()
+      
+      // Remover markdown code blocks si existen
+      jsonText = jsonText.replace(/```json\n?/g, "").replace(/```\n?/g, "")
+      jsonText = jsonText.trim()
+
+      // Buscar el primer { y último } para extraer solo el JSON
+      const firstBrace = jsonText.indexOf("{")
+      const lastBrace = jsonText.lastIndexOf("}")
+
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        jsonText = jsonText.substring(firstBrace, lastBrace + 1)
+      }
+
+      const criteria = JSON.parse(jsonText) as GeminiPlaylistCriteria
+
+      // Validar que tenga los campos mínimos
+      if (!criteria.playlistName || !criteria.criteria) {
+        throw new Error("Respuesta de Gemini no tiene el formato esperado")
+      }
+
+      // Establecer valores por defecto
+      if (!criteria.description) {
+        criteria.description = `Playlist personalizada: ${criteria.playlistName}`
+      }
+
+      // Si se calculó maxTracks basado en el tiempo, usarlo (tiene prioridad)
+      if (calculatedMaxTracks) {
+        criteria.criteria.maxTracks = calculatedMaxTracks
+      } else if (!criteria.criteria.maxTracks) {
+        criteria.criteria.maxTracks = 30
+      }
+
+      // Si identificamos una actividad con BPM, SIEMPRE forzar el bpmRange (CRUCIAL)
+      // Esto es OBLIGATORIO - no es opcional
+      if (activityBPM) {
+        criteria.criteria.bpmRange = [activityBPM.min, activityBPM.max]
+        console.log(`⚠️ BPM OBLIGATORIO para actividad "${identifiedActivity}": ${activityBPM.min}-${activityBPM.max} BPM`)
+      } else if (criteria.criteria.bpmRange) {
+        // Si Gemini sugirió un bpmRange pero no hay actividad, mantenerlo
+        console.log(`BPM sugerido por Gemini: ${criteria.criteria.bpmRange[0]}-${criteria.criteria.bpmRange[1]} BPM`)
+      }
+
+      return criteria
+    } catch (error) {
+      // Si es un error de parsing o procesamiento, no intentar más modelos
+      console.error(`Error procesando respuesta del modelo ${model.name}:`, error)
+      throw error
     }
+  }
 
-    const data = await response.json()
-
-    // Extraer el texto de la respuesta
-    const responseText =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      ""
-
-    if (!responseText) {
-      throw new Error("No se recibió respuesta de Gemini")
-    }
-
-    // Intentar parsear el JSON de la respuesta
-    // Gemini a veces envuelve el JSON en markdown, así que lo limpiamos
-    let jsonText = responseText.trim()
-    
-    // Remover markdown code blocks si existen
-    jsonText = jsonText.replace(/```json\n?/g, "").replace(/```\n?/g, "")
-    jsonText = jsonText.trim()
-
-    // Buscar el primer { y último } para extraer solo el JSON
-    const firstBrace = jsonText.indexOf("{")
-    const lastBrace = jsonText.lastIndexOf("}")
-
-    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-      jsonText = jsonText.substring(firstBrace, lastBrace + 1)
-    }
-
-    const criteria = JSON.parse(jsonText) as GeminiPlaylistCriteria
-
-    // Validar que tenga los campos mínimos
-    if (!criteria.playlistName || !criteria.criteria) {
-      throw new Error("Respuesta de Gemini no tiene el formato esperado")
-    }
-
-    // Establecer valores por defecto
-    if (!criteria.description) {
-      criteria.description = `Playlist personalizada: ${criteria.playlistName}`
-    }
-
-    // Si se calculó maxTracks basado en el tiempo, usarlo (tiene prioridad)
-    if (calculatedMaxTracks) {
-      criteria.criteria.maxTracks = calculatedMaxTracks
-    } else if (!criteria.criteria.maxTracks) {
-      criteria.criteria.maxTracks = 30
-    }
-
-    // Si identificamos una actividad con BPM, SIEMPRE forzar el bpmRange (CRUCIAL)
-    // Esto es OBLIGATORIO - no es opcional
-    if (activityBPM) {
-      criteria.criteria.bpmRange = [activityBPM.min, activityBPM.max]
-      console.log(`⚠️ BPM OBLIGATORIO para actividad "${identifiedActivity}": ${activityBPM.min}-${activityBPM.max} BPM`)
-    } else if (criteria.criteria.bpmRange) {
-      // Si Gemini sugirió un bpmRange pero no hay actividad, mantenerlo
-      console.log(`BPM sugerido por Gemini: ${criteria.criteria.bpmRange[0]}-${criteria.criteria.bpmRange[1]} BPM`)
-    }
-
-    return criteria
-  } catch (error) {
-    console.error("Error llamando a Gemini:", error)
+  // Si llegamos aquí, todos los modelos fallaron
+  throw new Error(
+    `Todos los modelos de Gemini fallaron. Último error: ${lastError?.message || "Desconocido"}\n` +
+    `Modelos intentados: ${modelsToTry.map(m => `${m.name} (${m.version})`).join(", ")}`
+  )
+} catch (error) {
+  console.error("Error llamando a Gemini:", error)
     
     // Si falla, devolver criterios por defecto basados en el prompt
     // SIEMPRE incluir BPM si hay actividad identificada (CRUCIAL)
