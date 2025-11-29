@@ -98,7 +98,7 @@ export default function PlaylistPrompt() {
     }
   }, [])
 
-  // Generate tracks using Gemini and Spotify API
+  // Generate tracks using OpenAI and Spotify API
   const generateTracks = async (promptText: string): Promise<{ tracks: Track[]; playlistName: string; description: string }> => {
     const response = await fetch("/api/generate-playlist", {
       method: "POST",
@@ -183,7 +183,7 @@ export default function PlaylistPrompt() {
     }, 500)
     
     try {
-      // Generar canciones usando Gemini y Spotify
+      // Generar canciones usando OpenAI y Spotify
       const result = await generateTracks(prompt)
       clearInterval(messageInterval)
       

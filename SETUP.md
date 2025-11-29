@@ -21,8 +21,8 @@ Si eres un nuevo colaborador en el proyecto, sigue estos pasos rápidos:
 
 3. **Configurar variables de entorno:**
    - Crea un archivo `.env.local` en la raíz del proyecto
-   - Pide a tu compañero las credenciales necesarias (SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, GEMINI_API_KEY)
-   - Obtén tu propia Gemini API Key en https://aistudio.google.com/ (gratis)
+   - Pide a tu compañero las credenciales necesarias (SPOTIFY_CLIENT_ID, SPOTIFY_CLIENT_SECRET, OPENAI_API_KEY)
+   - Obtén tu propia OpenAI API Key en https://platform.openai.com/api-keys (requiere cuenta con créditos)
    - Ver la sección "Paso 2: Configurar Variables de Entorno" para más detalles
 
 4. **Ejecutar el proyecto localmente:**
@@ -34,7 +34,7 @@ Si eres un nuevo colaborador en el proyecto, sigue estos pasos rápidos:
    - Si necesitas agregar usuarios para probar, ve a Spotify Dashboard → Users and Access
    - Puedes agregar hasta 25 usuarios en modo desarrollo
 
-⚠️ **Nota**: Las credenciales de Spotify son compartidas, pero la API Key de Gemini puede ser personal (cada uno puede tener la suya).
+⚠️ **Nota**: Las credenciales de Spotify son compartidas, pero la API Key de OpenAI puede ser personal (cada uno puede tener la suya, requiere cuenta con créditos).
 
 ---
 
@@ -164,7 +164,7 @@ Crea un archivo `.env.local` en la raíz del proyecto:
 SPOTIFY_CLIENT_ID=tu_client_id_aqui
 SPOTIFY_CLIENT_SECRET=tu_client_secret_aqui
 SPOTIFY_REDIRECT_URI=https://spoty-three.vercel.app/api/auth/callback
-GEMINI_API_KEY=tu_gemini_api_key_aqui
+OPENAI_API_KEY=tu_openai_api_key_aqui
 
 # Supabase (opcional - solo si usas base de datos)
 NEXT_PUBLIC_SUPABASE_URL=tu_supabase_url_aqui
@@ -177,19 +177,17 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_supabase_anon_key_aqui
 - Reinicia el servidor después de crear/modificar este archivo
 - Solo usamos la URL de producción: `https://spoty-three.vercel.app/api/auth/callback`
 
-### Configurar Gemini API Key
+### Configurar OpenAI API Key
 
-1. Ve a https://aistudio.google.com/
-2. Inicia sesión con tu cuenta de Google
-3. Crea un proyecto o selecciona uno existente
-4. Ve a la sección de credenciales/configuración
-5. Genera una nueva API key
-6. Copia la API key y agrégala a tu `.env.local` como `GEMINI_API_KEY`
+1. Ve a https://platform.openai.com/api-keys
+2. Inicia sesión con tu cuenta de OpenAI
+3. Crea una nueva API key o usa una existente
+4. Copia la API key y agrégala a tu `.env.local` como `OPENAI_API_KEY`
 
-**Límites del plan gratuito:**
-- 5 solicitudes por minuto
-- 25 solicitudes por día
-- 1,000,000 tokens por minuto
+**Notas importantes:**
+- OpenAI requiere una cuenta con créditos (no hay plan completamente gratuito)
+- Los precios varían según el modelo usado (gpt-4-turbo es más costoso que gpt-3.5-turbo)
+- Puedes consultar los precios actuales en https://openai.com/pricing
 
 ### Para Producción en Vercel
 
@@ -210,8 +208,8 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_supabase_anon_key_aqui
    - **Value**: `https://spoty-three.vercel.app/api/auth/callback`
    - **Environment**: `Production` (y `Preview` si quieres)
 
-   - **Name**: `GEMINI_API_KEY`
-   - **Value**: Tu Gemini API Key (obtenida de Google AI Studio)
+   - **Name**: `OPENAI_API_KEY`
+   - **Value**: Tu OpenAI API Key (obtenida de OpenAI Platform)
    - **Environment**: `Production` (y `Preview` si quieres)
 
 5. Haz clic en **Save** para cada una
@@ -289,7 +287,7 @@ NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_supabase_anon_key_aqui
 ## 🚀 Próximos Pasos
 
 Después de configurar la autenticación:
-- ✅ Integración con Gemini API para interpretar prompts
+- ✅ Integración con OpenAI API para interpretar prompts y seleccionar canciones
 - ✅ Lectura de datos del usuario de Spotify
 - ✅ Generación de playlists personalizadas
 - ✅ Priorización de BPM en las playlists

@@ -19,7 +19,7 @@ export interface PlaylistCriteria {
   }
 }
 
-// Mantener compatibilidad con el nombre anterior
+// Mantener compatibilidad con el nombre anterior (deprecated, usar PlaylistCriteria)
 export type GeminiPlaylistCriteria = PlaylistCriteria
 
 export interface UserSpotifyData {
@@ -355,6 +355,4 @@ Genera los criterios de búsqueda para esta playlist usando la función generate
   }
 }
 
-// Mantener compatibilidad con el nombre anterior
-export const callGeminiAPI = callOpenAIAPI
 
