@@ -253,6 +253,7 @@ export default function RecordsPage() {
                 Connect with Spotify
               </button>
             )}
+          </div>
         </div>
       </nav>
 
