@@ -36,10 +36,18 @@ export async function callGeminiAPI(
   userPrompt: string,
   userData: UserSpotifyData
 ): Promise<GeminiPlaylistCriteria> {
-  const GEMINI_API_KEY = process.env.GEMINI_API_KEY
+  const GEMINI_API_KEY = process.env.GEMINI_API_KEY?.trim()
 
-  if (!GEMINI_API_KEY) {
+  if (!GEMINI_API_KEY || GEMINI_API_KEY.length === 0) {
+    console.error("GEMINI_API_KEY no está configurada o está vacía")
+    console.error("Variables de entorno disponibles:", Object.keys(process.env).filter(key => key.includes("GEMINI") || key.includes("API")))
     throw new Error("GEMINI_API_KEY no está configurada")
+  }
+
+  // Validar que la API key tenga el formato correcto (debería empezar con "AIza")
+  if (!GEMINI_API_KEY.startsWith("AIza")) {
+    console.error("GEMINI_API_KEY no tiene el formato esperado. Debería empezar con 'AIza'")
+    throw new Error("GEMINI_API_KEY tiene un formato inválido")
   }
 
   // Intentar identificar actividad e intensidad del prompt
@@ -247,6 +255,27 @@ EJEMPLO DE RESPUESTA:
     if (!response.ok) {
       const errorText = await response.text()
       console.error("Error en Gemini API:", errorText)
+      console.error("API Key usado (primeros 10 chars):", GEMINI_API_KEY?.substring(0, 10))
+      console.error("Status:", response.status)
+      
+      // Si es un error 400 con API key inválida, dar información más útil
+      if (response.status === 400) {
+        try {
+          const errorJson = JSON.parse(errorText)
+          if (errorJson.error?.code === 400 && errorJson.error?.message?.includes("API key")) {
+            throw new Error(
+              `API key de Gemini inválida. Verifica que:\n` +
+              `1. La variable GEMINI_API_KEY esté configurada en Vercel\n` +
+              `2. El valor sea correcto (debe empezar con "AIza")\n` +
+              `3. Hayas hecho un nuevo deploy después de agregar la variable\n` +
+              `Error: ${errorJson.error?.message}`
+            )
+          }
+        } catch (e) {
+          // Si no se puede parsear el JSON, continuar con el error original
+        }
+      }
+      
       throw new Error(`Gemini API error: ${response.status} ${errorText}`)
     }
 
