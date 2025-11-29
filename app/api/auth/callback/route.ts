@@ -93,12 +93,8 @@ export async function GET(request: NextRequest) {
     const isProduction = process.env.NODE_ENV === "production"
     const isSecure = isProduction || request.url.startsWith("https://")
     
-    // Obtener la ruta de retorno desde las cookies, o usar "/" por defecto
-    const returnTo = cookieStore.get("spotify_return_to")?.value || "/"
-    
-    // Construir URL de redirección usando el origen de la petición
-    const origin = new URL(request.url).origin
-    const redirectUrl = new URL(`${returnTo}${returnTo.includes('?') ? '&' : '?'}connected=true`, origin)
+    // Siempre redirigir a "/" para evitar problemas con rutas que no existen
+    const redirectUrl = new URL("/?connected=true", request.url)
     const response = NextResponse.redirect(redirectUrl)
     
     const expiresInSeconds = tokens.expires_in || 3600
