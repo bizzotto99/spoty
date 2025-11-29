@@ -228,11 +228,14 @@ EJEMPLO DE RESPUESTA:
 }`
 
   // Lista de modelos a intentar, en orden de preferencia
+  // Priorizamos modelos disponibles en el tier gratuito
   const modelsToTry = [
+    { name: "gemini-2.0-flash-exp", version: "v1beta" }, // Modelo más reciente, probablemente disponible en free tier
+    { name: "gemini-2.0-flash", version: "v1beta" }, // Modelo gratuito mencionado
     { name: "gemini-1.5-flash", version: "v1beta" },
+    { name: "gemini-1.5-flash-8b", version: "v1beta" }, // Versión ligera, suele estar en free tier
     { name: "gemini-1.5-pro", version: "v1beta" },
     { name: "gemini-pro", version: "v1" },
-    { name: "gemini-1.0-pro", version: "v1" },
   ]
 
   let lastError: Error | null = null
