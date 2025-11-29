@@ -5,6 +5,10 @@ import { searchDalePlayTracks, searchDalePlayArtists } from "@/lib/search-dalepl
 import { spotifyApiRequest } from "@/lib/spotify"
 import type { Artist } from "@/lib/search-daleplay"
 
+// Configurar tiempo máximo de ejecución: 300 segundos (5 minutos) - máximo permitido en Vercel Pro
+// Esto permite que Gemini tome el tiempo que necesite sin límite artificial
+export const maxDuration = 300
+
 // Función para mezclar array aleatoriamente (Fisher-Yates shuffle)
 function shuffleArray<T>(array: T[], seed?: string): T[] {
   const shuffled = [...array]
