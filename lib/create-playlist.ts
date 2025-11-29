@@ -73,6 +73,12 @@ export async function createPlaylistInSpotify(
         console.error(`Error agregando tracks al lote ${i / batchSize + 1}:`, errorText)
         // Continuar con el siguiente lote aunque falle uno
       }
+
+      // Agregar un pequeño delay entre lotes para evitar rate limiting
+      // Solo si no es el último lote
+      if (i + batchSize < trackUris.length) {
+        await new Promise(resolve => setTimeout(resolve, 200)) // 200ms entre lotes
+      }
     }
 
     // 3. Subir imagen de la playlist si se proporciona

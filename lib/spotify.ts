@@ -64,16 +64,30 @@ export async function spotifyApiRequest(
   // Manejar rate limiting (429 Too Many Requests)
   if (response.status === 429) {
     const retryAfter = response.headers.get("Retry-After")
-    const waitTime = retryAfter 
-      ? parseInt(retryAfter, 10) * 1000 
-      : baseDelay * Math.pow(2, retryCount)
+    let waitTime: number
+    
+    if (retryAfter) {
+      const retryAfterSeconds = parseInt(retryAfter, 10)
+      // Validar que el valor sea razonable (máximo 60 segundos)
+      // Si el valor es muy grande, usar un valor por defecto
+      if (isNaN(retryAfterSeconds) || retryAfterSeconds > 60 || retryAfterSeconds < 0) {
+        console.warn(`Retry-After inválido o muy grande (${retryAfter}), usando 10 segundos por defecto`)
+        waitTime = 10000 // 10 segundos
+      } else {
+        waitTime = retryAfterSeconds * 1000
+      }
+    } else {
+      // Si no hay Retry-After, usar exponential backoff
+      waitTime = Math.min(baseDelay * Math.pow(2, retryCount), 30000) // Máximo 30 segundos
+    }
     
     if (retryCount < maxRetries) {
-      console.log(`Rate limit alcanzado. Esperando ${waitTime}ms antes de reintentar...`)
+      const waitTimeSeconds = (waitTime / 1000).toFixed(1)
+      console.log(`[Spotify API] Rate limit alcanzado. Esperando ${waitTimeSeconds}s antes de reintentar... (intento ${retryCount + 1}/${maxRetries})`)
       await new Promise(resolve => setTimeout(resolve, waitTime))
       return spotifyApiRequest(endpoint, accessToken, options, retryCount + 1)
     } else {
-      throw new Error("Rate limit excedido después de múltiples intentos")
+      throw new Error("Rate limit excedido después de múltiples intentos. Por favor intenta más tarde.")
     }
   }
 
