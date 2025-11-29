@@ -217,42 +217,41 @@ export default function RecordsPage() {
 
             {/* Input centrado */}
             <div className="w-full max-w-2xl mb-8">
-              <div
-                className="flex items-center gap-0 rounded-full transition-all duration-300 w-full"
-                style={{ backgroundColor: "#1a1a1a" }}
-              >
-                <input
-                  type="text"
-                  placeholder="Describe the playlist you want to create…"
-                  className="flex-1 px-6 py-4 bg-transparent text-white placeholder-gray-500 outline-none font-sans text-base"
-                  style={{ color: "#ffffff" }}
-                />
-                <button
-                  type="button"
-                  className="mr-3 p-2 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center"
-                  style={{
-                    backgroundColor: "#1DB954",
-                    color: "#000",
-                  }}
-                  onMouseEnter={(e) => {
-                    e.currentTarget.style.boxShadow = "0 0 16px rgba(29, 185, 84, 0.4)"
-                    e.currentTarget.style.backgroundColor = "#1ed760"
-                  }}
-                  onMouseLeave={(e) => {
-                    e.currentTarget.style.boxShadow = "none"
-                    e.currentTarget.style.backgroundColor = "#1DB954"
-                  }}
-                  aria-label="Send prompt"
+              <form className="w-full flex flex-col items-center gap-4">
+                <div
+                  className="flex items-center gap-0 rounded-full transition-all duration-300 w-full"
+                  style={{ backgroundColor: "#1a1a1a" }}
                 >
-                  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
-                    <line x1="22" y1="2" x2="11" y2="13"></line>
-                    <polygon points="22 2 15 22 11 13 2 9 22 2"></polygon>
-                  </svg>
-                </button>
-              </div>
+                  <input
+                    type="text"
+                    placeholder="Describe the playlist you want to create…"
+                    className="flex-1 px-6 py-4 bg-transparent text-white placeholder-gray-500 outline-none font-sans text-base"
+                    style={{ color: "#ffffff" }}
+                  />
+                  <button
+                    type="submit"
+                    className="mr-3 p-2 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center"
+                    style={{
+                      backgroundColor: "#1DB954",
+                      color: "#000",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = "0 0 16px rgba(29, 185, 84, 0.4)"
+                      e.currentTarget.style.backgroundColor = "#1ed760"
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = "none"
+                      e.currentTarget.style.backgroundColor = "#1DB954"
+                    }}
+                    aria-label="Send prompt"
+                  >
+                    <Send size={20} strokeWidth={2.5} />
+                  </button>
+                </div>
+              </form>
             </div>
 
-            {/* Tips para el prompt */}
+            {/* Tips debajo del input - centrados */}
             <div className="w-full max-w-2xl">
               <div className="flex items-center gap-2 mb-3">
                 <svg className="w-4 h-4" style={{ color: "#1DB954" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
