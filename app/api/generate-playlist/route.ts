@@ -2,7 +2,38 @@ import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { callGeminiAPI } from "@/lib/gemini"
 import { searchDalePlayTracks, searchDalePlayArtists } from "@/lib/search-daleplay"
+import { spotifyApiRequest } from "@/lib/spotify"
 import type { Artist } from "@/lib/search-daleplay"
+
+// Función para mezclar array aleatoriamente (Fisher-Yates shuffle)
+function shuffleArray<T>(array: T[], seed?: string): T[] {
+  const shuffled = [...array]
+  
+  // Si hay seed, usarla para hacer la aleatoriedad determinista pero variada
+  let random: () => number
+  if (seed) {
+    let hash = 0
+    for (let i = 0; i < seed.length; i++) {
+      const char = seed.charCodeAt(i)
+      hash = ((hash << 5) - hash) + char
+      hash = hash & hash // Convert to 32bit integer
+    }
+    let seedValue = Math.abs(hash) / 2147483647
+    random = () => {
+      seedValue = (seedValue * 9301 + 49297) % 233280
+      return seedValue / 233280
+    }
+  } else {
+    random = Math.random
+  }
+  
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(random() * (i + 1));
+    [shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
+  
+  return shuffled
+}
 
 /**
  * API Route para generar playlist usando Gemini y tracks del label Dale Play
@@ -114,8 +145,112 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // Limitar a maxTracks
-    const tracks = filteredTracks.slice(0, maxTracks)
+    // 6. Obtener audio features (BPM) de todos los tracks filtrados
+    const audioFeaturesMap = new Map<string, { tempo: number; energy?: number; danceability?: number }>()
+    
+    if (filteredTracks.length > 0 && criteria.criteria.bpmRange) {
+      // Obtener audio features en lotes de 100 (límite de Spotify)
+      const trackIds = filteredTracks.map(t => t.id)
+      const chunks = []
+      for (let i = 0; i < trackIds.length; i += 100) {
+        chunks.push(trackIds.slice(i, i + 100))
+      }
+      
+      for (const chunk of chunks) {
+        try {
+          const featuresRes = await spotifyApiRequest(
+            `/audio-features?ids=${chunk.join(',')}`,
+            accessToken
+          )
+          const featuresData = await featuresRes.json()
+          
+          if (featuresData.audio_features) {
+            featuresData.audio_features.forEach((feature: any) => {
+              if (feature && feature.id && feature.tempo) {
+                audioFeaturesMap.set(feature.id, {
+                  tempo: feature.tempo,
+                  energy: feature.energy,
+                  danceability: feature.danceability,
+                })
+              }
+            })
+          }
+        } catch (error) {
+          console.error("Error obteniendo audio features:", error)
+        }
+      }
+      
+      // Filtrar tracks por BPM ANTES de seleccionar
+      const [minBPM, maxBPM] = criteria.criteria.bpmRange
+      filteredTracks = filteredTracks.filter(track => {
+        const features = audioFeaturesMap.get(track.id)
+        if (!features || !features.tempo) {
+          console.warn(`Track "${track.name}" no tiene BPM disponible, excluido`)
+          return false
+        }
+        
+        const isInRange = features.tempo >= minBPM && features.tempo <= maxBPM
+        if (!isInRange) {
+          console.log(`Track "${track.name}" tiene BPM ${features.tempo.toFixed(1)} (fuera de rango ${minBPM}-${maxBPM})`)
+        }
+        return isInRange
+      })
+      
+      console.log(`Filtrado por BPM ${minBPM}-${maxBPM}: ${filteredTracks.length} tracks disponibles`)
+    }
+
+    // 7. Mezclar aleatoriamente los tracks para variar la selección
+    // Usar el prompt como semilla para que cada prompt genere diferentes playlists
+    const shuffledTracks = shuffleArray(filteredTracks, prompt.trim())
+
+    // 8. Seleccionar tracks asegurando diversidad de artistas
+    const selectedTracks: typeof filteredTracks = []
+    const artistCountMap = new Map<string, number>() // Para rastrear cuántas canciones por artista
+    const recentArtists: string[] = [] // Últimos 2-3 artistas para evitar repeticiones
+    const maxConsecutiveSameArtist = 2 // Máximo 2 canciones del mismo artista seguidas
+
+    for (const track of shuffledTracks) {
+      if (selectedTracks.length >= maxTracks) break
+      
+      const artistKey = track.artist.toLowerCase()
+      const recentCount = recentArtists.filter(a => a === artistKey).length
+      
+      // Evitar más de maxConsecutiveSameArtist canciones del mismo artista seguidas
+      if (recentCount >= maxConsecutiveSameArtist) {
+        continue // Saltar este track, buscar otro artista
+      }
+      
+      // Limitar cantidad total de canciones por artista (máximo 4-5 por artista en playlists grandes)
+      const artistTrackCount = artistCountMap.get(artistKey) || 0
+      const maxTracksPerArtist = maxTracks > 30 ? 5 : 3
+      
+      if (artistTrackCount >= maxTracksPerArtist) {
+        continue // Ya tenemos suficientes canciones de este artista
+      }
+      
+      // Agregar el track
+      selectedTracks.push(track)
+      artistCountMap.set(artistKey, artistTrackCount + 1)
+      
+      // Actualizar lista de artistas recientes
+      recentArtists.push(artistKey)
+      if (recentArtists.length > maxConsecutiveSameArtist) {
+        recentArtists.shift()
+      }
+    }
+
+    // Si no alcanzamos el número deseado, agregar tracks restantes (sin restricción de artista)
+    if (selectedTracks.length < maxTracks) {
+      for (const track of shuffledTracks) {
+        if (selectedTracks.length >= maxTracks) break
+        if (!selectedTracks.find(t => t.id === track.id)) {
+          selectedTracks.push(track)
+        }
+      }
+    }
+
+    // Mezclar una vez más para distribuir mejor los artistas
+    const tracks = shuffleArray(selectedTracks)
 
     if (tracks.length === 0) {
       return NextResponse.json(
