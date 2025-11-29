@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { callOpenAIAPI, extractDurationAndCalculateTracks } from "@/lib/openai"
-import { searchDalePlayTracks, searchDalePlayArtists } from "@/lib/search-daleplay"
+import { searchDalePlayDataOptimized } from "@/lib/search-daleplay-optimized"
 import { spotifyApiRequest } from "@/lib/spotify"
 
 // Configurar tiempo máximo de ejecución: 300 segundos (5 minutos)
@@ -67,12 +67,17 @@ export async function POST(request: NextRequest) {
     // 3. Calcular cantidad de tracks necesarios primero
     const maxTracksNeeded = extractDurationAndCalculateTracks(prompt.trim())
 
-    // 4. Buscar artistas y tracks del label "Dale Play Records" (optimizado)
+    // 4. Buscar artistas y tracks del label "Dale Play Records" (OPTIMIZADO - busca una sola vez, usa cache)
     // Buscar solo un poco más de tracks de los necesarios (margen pequeño para tener opciones después del filtrado)
     const tracksToSearch = Math.min(25, Math.max(maxTracksNeeded + 5, 15)) // Máximo 25, mínimo 15, o maxTracks+5 si es mayor
-    console.log(`🔍 Buscando artistas y ${tracksToSearch} tracks de Dale Play Records (necesitamos ${maxTracksNeeded})...`)
-    const dalePlayArtists = await searchDalePlayArtists(accessToken, 10) // Reducido de 15 a 10
-    const allDalePlayTracks = await searchDalePlayTracks(accessToken, tracksToSearch) // Solo buscar lo necesario
+    console.log(`🔍 Buscando artistas y ${tracksToSearch} tracks de Dale Play Records (necesitamos ${maxTracksNeeded})... [OPTIMIZADO]`)
+    
+    // Usar función optimizada que busca álbumes UNA SOLA VEZ y comparte datos
+    const { artists: dalePlayArtists, tracks: allDalePlayTracks } = await searchDalePlayDataOptimized(
+      accessToken,
+      10, // límite de artistas
+      tracksToSearch // límite de tracks
+    )
 
     // Extraer géneros de los artistas de Dale Play
     const dalePlayGenres: string[] = []
