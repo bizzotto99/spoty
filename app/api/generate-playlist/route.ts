@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
-import { callGeminiAPI } from "@/lib/gemini"
+import { callOpenAIAPI } from "@/lib/openai"
 import { searchDalePlayTracks, searchDalePlayArtists } from "@/lib/search-daleplay"
 import { spotifyApiRequest } from "@/lib/spotify"
 import type { Artist } from "@/lib/search-daleplay"
@@ -81,8 +81,8 @@ export async function POST(request: NextRequest) {
       })
     })
 
-    // 4. Llamar a Gemini para generar criterios usando datos de Dale Play
-    const criteria = await callGeminiAPI(prompt.trim(), {
+    // 4. Llamar a OpenAI para generar criterios usando datos de Dale Play
+    const criteria = await callOpenAIAPI(prompt.trim(), {
       topGenres: dalePlayGenres,
       favoriteArtists: dalePlayArtists.map(a => ({ name: a.name, genres: a.genres })),
       musicPreferences: {
