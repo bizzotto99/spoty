@@ -3,12 +3,15 @@
  */
 
 import { spotifyApiRequest } from "./spotify"
+import fs from "fs"
+import path from "path"
 
 export interface CreatePlaylistOptions {
   name: string
   description: string
   tracks: Array<{ uri: string }>
   isPublic?: boolean
+  imagePath?: string
 }
 
 /**
@@ -71,7 +74,50 @@ export async function createPlaylistInSpotify(
       }
     }
 
-    // 3. Construir URL de la playlist
+    // 3. Subir imagen de la playlist si se proporciona
+    if (options.imagePath) {
+      try {
+        // Leer la imagen y convertirla a base64
+        const imagePath = path.join(process.cwd(), "public", options.imagePath)
+        const imageBuffer = fs.readFileSync(imagePath)
+        const imageBase64 = imageBuffer.toString("base64")
+
+        // Determinar el tipo de imagen basado en la extensión
+        const ext = path.extname(options.imagePath).toLowerCase()
+        let contentType = "image/jpeg"
+        if (ext === ".png") {
+          contentType = "image/png"
+        } else if (ext === ".jpg" || ext === ".jpeg") {
+          contentType = "image/jpeg"
+        }
+
+        // Subir imagen a Spotify (acepta JPEG o PNG, máximo 256KB)
+        const uploadImageRes = await spotifyApiRequest(
+          `/playlists/${playlistId}/images`,
+          accessToken,
+          {
+            method: "PUT",
+            headers: {
+              "Content-Type": contentType,
+            },
+            body: imageBase64,
+          }
+        )
+
+        if (!uploadImageRes.ok) {
+          const errorText = await uploadImageRes.text()
+          console.error(`Error subiendo imagen de playlist: ${uploadImageRes.status} ${errorText}`)
+          // No fallar si la imagen no se puede subir, solo loguear el error
+        } else {
+          console.log("Imagen de playlist subida exitosamente")
+        }
+      } catch (error) {
+        console.error("Error procesando imagen de playlist:", error)
+        // No fallar si la imagen no se puede subir, solo loguear el error
+      }
+    }
+
+    // 4. Construir URL de la playlist
     const playlistUrl = playlist.external_urls?.spotify || `https://open.spotify.com/playlist/${playlistId}`
 
     return {

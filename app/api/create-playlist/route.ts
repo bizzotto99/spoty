@@ -71,12 +71,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 4. Crear la playlist
+    // 4. Crear la playlist con imagen por defecto
     const result = await createPlaylistInSpotify(accessToken, userId, {
       name: name.trim(),
       description: description || "",
       tracks: trackUris,
       isPublic: true,
+      imagePath: "playlist.png", // Imagen por defecto para todas las playlists
     })
 
     // 5. Retornar resultado

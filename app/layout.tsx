@@ -11,8 +11,8 @@ export const metadata: Metadata = {
   title: 'Spoty',
   description: 'Create personalized playlists with AI',
   icons: {
-    icon: '/icon.png',
-    apple: '/icon.png',
+    icon: '/ionicon.png',
+    apple: '/ionicon.png',
   },
 }
 
