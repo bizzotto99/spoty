@@ -73,6 +73,8 @@ export default function RecordsPage() {
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       setShowConnectModal(true)
+    } else if (isAuthenticated) {
+      setShowConnectModal(false)
     }
   }, [isLoading, isAuthenticated])
 
@@ -187,7 +189,11 @@ export default function RecordsPage() {
       </nav>
 
       <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-8">
-        {!isAuthenticated ? (
+        {isLoading ? (
+          <div className="text-center">
+            <p className="text-gray-400 text-lg">Loading...</p>
+          </div>
+        ) : !isAuthenticated ? (
           <div className="text-center">
             <div className="flex items-center justify-center gap-4 mb-4">
               <h1 className="text-white text-5xl font-bold tracking-tight" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
