@@ -227,16 +227,49 @@ EJEMPLO DE RESPUESTA:
   }
 }`
 
-  // Lista de modelos a intentar, en orden de preferencia
-  // Priorizamos modelos disponibles en el tier gratuito
-  const modelsToTry = [
-    { name: "gemini-2.0-flash-exp", version: "v1beta" }, // Modelo más reciente, probablemente disponible en free tier
-    { name: "gemini-2.0-flash", version: "v1beta" }, // Modelo gratuito mencionado
-    { name: "gemini-1.5-flash", version: "v1beta" },
-    { name: "gemini-1.5-flash-8b", version: "v1beta" }, // Versión ligera, suele estar en free tier
-    { name: "gemini-1.5-pro", version: "v1beta" },
-    { name: "gemini-pro", version: "v1" },
-  ]
+  // Primero intentar listar los modelos disponibles
+  let availableModels: Array<{ name: string; version: string }> = []
+  
+  try {
+    const listResponse = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models?key=${GEMINI_API_KEY}`
+    )
+    
+    if (listResponse.ok) {
+      const listData = await listResponse.json()
+      if (listData.models) {
+        // Filtrar modelos que soporten generateContent
+        availableModels = listData.models
+          .filter((m: any) => 
+            m.supportedGenerationMethods?.includes("generateContent") &&
+            (m.name.includes("gemini") || m.name.includes("flash"))
+          )
+          .map((m: any) => {
+            // Extraer nombre del modelo y versión de la API
+            const parts = m.name.split("/")
+            const modelName = parts[parts.length - 1]
+            const version = m.name.includes("/v1beta/") ? "v1beta" : "v1"
+            return { name: modelName, version }
+          })
+        
+        console.log(`✅ Encontrados ${availableModels.length} modelos disponibles:`, availableModels.map(m => `${m.name} (${m.version})`).join(", "))
+      }
+    }
+  } catch (error) {
+    console.warn("No se pudo listar modelos disponibles, usando lista predeterminada:", error)
+  }
+
+  // Si no encontramos modelos disponibles, usar lista predeterminada
+  const modelsToTry = availableModels.length > 0 
+    ? availableModels 
+    : [
+        { name: "gemini-2.0-flash-exp", version: "v1beta" },
+        { name: "gemini-2.0-flash", version: "v1beta" },
+        { name: "gemini-1.5-flash-8b", version: "v1beta" },
+        { name: "gemini-1.5-flash", version: "v1beta" },
+        { name: "gemini-1.5-pro", version: "v1beta" },
+        { name: "gemini-pro", version: "v1" },
+      ]
 
   let lastError: Error | null = null
 
