@@ -483,7 +483,7 @@ export default function PlaylistPrompt() {
               style={{ 
                 color: "#ffffff",
                 fontFamily: "var(--font-instrument-serif), 'Instrument Serif', serif",
-                letterSpacing: "-0.03em",
+                letterSpacing: "-0.02em",
               }}
             >
               Scale Your Playlist Creation for Your Label
