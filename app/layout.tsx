@@ -1,5 +1,5 @@
 import type { Metadata } from 'next'
-import { Geist, Geist_Mono, Playfair_Display } from 'next/font/google'
+import { Geist, Geist_Mono, Playfair_Display, Instrument_Serif } from 'next/font/google'
 import { Analytics } from '@vercel/analytics/next'
 import { Toaster } from '@/components/ui/sonner'
 import './globals.css'
@@ -10,6 +10,11 @@ const playfairDisplay = Playfair_Display({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
   variable: '--font-playfair',
+});
+const instrumentSerif = Instrument_Serif({ 
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: '--font-instrument-serif',
 });
 
 export const metadata: Metadata = {
@@ -28,7 +33,7 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body className={`font-sans antialiased ${playfairDisplay.variable}`}>
+      <body className={`font-sans antialiased ${playfairDisplay.variable} ${instrumentSerif.variable}`}>
         {children}
         <Toaster />
         <Analytics />

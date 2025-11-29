@@ -14,9 +14,3 @@ if (!supabaseUrl || !supabaseAnonKey) {
 
 // Cliente para uso en el servidor (con Row Level Security)
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
-
-// Cliente para uso en el cliente (browser)
-export function createSupabaseClient() {
-  return createClient(supabaseUrl, supabaseAnonKey)
-}
-

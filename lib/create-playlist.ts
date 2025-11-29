@@ -12,6 +12,7 @@ export interface CreatePlaylistOptions {
   tracks: Array<{ uri: string }>
   isPublic?: boolean
   imagePath?: string
+  imageUrl?: string // URL de internet para la imagen
 }
 
 /**
@@ -75,21 +76,54 @@ export async function createPlaylistInSpotify(
     }
 
     // 3. Subir imagen de la playlist si se proporciona
-    if (options.imagePath) {
+    if (options.imageUrl || options.imagePath) {
       try {
-        // Leer la imagen y convertirla a base64
-        const imagePath = path.join(process.cwd(), "public", options.imagePath)
-        const imageBuffer = fs.readFileSync(imagePath)
+        let imageBuffer: Buffer
+        let contentType: string
+
+        // Si hay una URL de internet, descargarla
+        if (options.imageUrl) {
+          console.log(`[create-playlist] Descargando imagen desde URL: ${options.imageUrl}`)
+          const imageResponse = await fetch(options.imageUrl)
+          
+          if (!imageResponse.ok) {
+            throw new Error(`Error descargando imagen: ${imageResponse.status} ${imageResponse.statusText}`)
+          }
+
+          imageBuffer = Buffer.from(await imageResponse.arrayBuffer())
+          
+          // Determinar content type desde la respuesta o la URL
+          const responseContentType = imageResponse.headers.get("content-type")
+          if (responseContentType && (responseContentType.includes("image/png") || responseContentType.includes("image/jpeg"))) {
+            contentType = responseContentType
+          } else {
+            // Fallback: determinar por extensión de la URL
+            const urlPath = new URL(options.imageUrl).pathname
+            const ext = path.extname(urlPath).toLowerCase()
+            contentType = ext === ".png" ? "image/png" : "image/jpeg"
+          }
+        } else if (options.imagePath) {
+          // Leer la imagen desde el sistema de archivos local
+          const imagePath = path.join(process.cwd(), "public", options.imagePath)
+          imageBuffer = fs.readFileSync(imagePath)
+          
+          // Determinar el tipo de imagen basado en la extensión
+          const ext = path.extname(options.imagePath).toLowerCase()
+          contentType = ext === ".png" ? "image/png" : "image/jpeg"
+        } else {
+          return { id: playlistId, url: playlist.external_urls?.spotify || `https://open.spotify.com/playlist/${playlistId}` }
+        }
+
+        // Convertir a base64
         const imageBase64 = imageBuffer.toString("base64")
 
-        // Determinar el tipo de imagen basado en la extensión
-        const ext = path.extname(options.imagePath).toLowerCase()
-        let contentType = "image/jpeg"
-        if (ext === ".png") {
-          contentType = "image/png"
-        } else if (ext === ".jpg" || ext === ".jpeg") {
-          contentType = "image/jpeg"
+        // Verificar tamaño (Spotify acepta máximo 256KB)
+        const sizeInKB = imageBuffer.length / 1024
+        if (sizeInKB > 256) {
+          console.warn(`[create-playlist] ⚠️ La imagen es muy grande (${sizeInKB.toFixed(2)}KB). Spotify acepta máximo 256KB. Intentando subir de todas formas...`)
         }
+
+        console.log(`[create-playlist] Subiendo imagen a Spotify (${sizeInKB.toFixed(2)}KB, ${contentType})`)
 
         // Subir imagen a Spotify (acepta JPEG o PNG, máximo 256KB)
         const uploadImageRes = await spotifyApiRequest(
@@ -106,13 +140,13 @@ export async function createPlaylistInSpotify(
 
         if (!uploadImageRes.ok) {
           const errorText = await uploadImageRes.text()
-          console.error(`Error subiendo imagen de playlist: ${uploadImageRes.status} ${errorText}`)
+          console.error(`[create-playlist] ❌ Error subiendo imagen de playlist: ${uploadImageRes.status} ${errorText}`)
           // No fallar si la imagen no se puede subir, solo loguear el error
         } else {
-          console.log("Imagen de playlist subida exitosamente")
+          console.log("[create-playlist] ✅ Imagen de playlist subida exitosamente a Spotify")
         }
       } catch (error) {
-        console.error("Error procesando imagen de playlist:", error)
+        console.error("[create-playlist] ❌ Error procesando imagen de playlist:", error)
         // No fallar si la imagen no se puede subir, solo loguear el error
       }
     }

@@ -2,7 +2,8 @@
 
 import type React from "react"
 import { useState, useEffect } from "react"
-import { LogOut, ChevronDown, Send, Music } from "lucide-react"
+import { useRouter } from "next/navigation"
+import { LogOut, ChevronDown, Send, Music, HelpCircle, ArrowLeft } from "lucide-react"
 import { ParticlesBackground } from "@/components/particles-background"
 import { useSpotifyAuth } from "@/hooks/use-spotify-auth"
 import {
@@ -24,6 +25,7 @@ import { toast } from "sonner"
 export default function RecordsPage() {
   const [showConnectModal, setShowConnectModal] = useState(false)
   const { isAuthenticated, user, isLoading, login, logout } = useSpotifyAuth()
+  const router = useRouter()
 
   // Check if there's an error or success in the URL (from callback)
   useEffect(() => {
@@ -202,11 +204,33 @@ export default function RecordsPage() {
         </div>
       </nav>
 
-      <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-8">
-        {!isAuthenticated ? (
-          <div className="text-center">
+      <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-8 px-4">
+        <div className="w-full max-w-4xl mx-auto">
+          {/* Back Button */}
+          <div className="mb-6">
+            <button
+              onClick={() => {
+                if (window.history.length > 1) {
+                  router.back()
+                } else {
+                  router.push("/")
+                }
+              }}
+              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft size={20} />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+          </div>
+          
+          {isLoading ? (
+            <div className="text-center">
+              <p className="text-gray-400 text-lg">Loading...</p>
+            </div>
+          ) : !isAuthenticated ? (
+            <div className="text-center">
             <div className="flex items-center justify-center gap-4 mb-4">
-              <h1 className="text-white text-5xl font-bold tracking-tight" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+              <h1 className="text-white text-5xl font-bold" style={{ fontFamily: "var(--font-instrument-serif), 'Instrument Serif', serif", letterSpacing: "-0.03em" }}>
                 Records
               </h1>
               <span 
@@ -225,7 +249,7 @@ export default function RecordsPage() {
             <p className="text-gray-400 text-lg">Connect with Spotify to view your records</p>
           </div>
         ) : (
-          <div className="w-full max-w-4xl mx-auto px-4 flex flex-col items-center">
+          <div className="w-full max-w-4xl mx-auto px-4">
             {/* Smart playlisting Powered by AI */}
             <div className="text-center mb-6">
               <p className="text-white text-lg font-medium" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -237,10 +261,26 @@ export default function RecordsPage() {
             </div>
 
             {/* Título dividido en dos renglones */}
-            <h1 className="text-white text-4xl font-bold text-center mb-8" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
-              <span className="block">Scale Your Playlist Creation</span>
-              <span className="block">for Your Label</span>
-            </h1>
+            <div className="text-center mb-8">
+              <div className="flex items-center justify-center gap-4 mb-4 flex-wrap">
+                <h1 className="text-white text-5xl font-bold" style={{ fontFamily: "var(--font-instrument-serif), 'Instrument Serif', serif", letterSpacing: "-0.03em" }}>
+                  Scale Your Playlist Creation
+                </h1>
+                <span 
+                  className="text-5xl"
+                  style={{ 
+                    color: "#ffffff",
+                    fontFamily: "var(--font-playfair), 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif",
+                    fontWeight: 300,
+                    letterSpacing: "0.15em",
+                    fontStyle: "italic",
+                  }}
+                >
+                  for Your Label
+                </span>
+              </div>
+              <p className="text-gray-400 text-lg">Create perfect playlists at scale for your record label</p>
+            </div>
 
             {/* Input centrado */}
             <div className="w-full max-w-2xl mb-8">
@@ -320,6 +360,7 @@ export default function RecordsPage() {
             </div>
           </div>
         )}
+        </div>
       </div>
 
       {/* Modal de conexión */}

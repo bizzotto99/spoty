@@ -163,21 +163,22 @@ export async function callGeminiAPI(
   }
 
   // Calcular cantidad de canciones basado en el tiempo
+  // Por defecto: 20 minutos si no se especifica duración
+  const DEFAULT_DURATION_MINUTES = 20
+  const actualMinutes = totalMinutes || DEFAULT_DURATION_MINUTES
+  
   // Asumimos ~3.5 minutos por canción en promedio
-  let calculatedMaxTracks: number | null = null
-  if (totalMinutes) {
-    const avgSongDurationMinutes = 3.5
-    calculatedMaxTracks = Math.ceil(totalMinutes / avgSongDurationMinutes)
-    // Limitar entre 10 y 100 canciones
-    calculatedMaxTracks = Math.max(10, Math.min(100, calculatedMaxTracks))
-  }
+  const avgSongDurationMinutes = 3.5
+  const calculatedMaxTracks = Math.ceil(actualMinutes / avgSongDurationMinutes)
+  // Limitar entre 10 y 100 canciones
+  const finalMaxTracks = Math.max(10, Math.min(100, calculatedMaxTracks))
 
   // Construir el prompt para Gemini
   const prompt = `Eres un experto en música y creación de playlists personalizadas. Analiza el siguiente prompt del usuario y genera criterios de búsqueda para crear una playlist perfecta.
 
 PROMPT DEL USUARIO: "${userPrompt}"
 ${identifiedActivity ? `ACTIVIDAD IDENTIFICADA: ${identifiedActivity} (BPM recomendado: ${activityBPM?.min}-${activityBPM?.max})` : ''}
-${totalMinutes ? `DURACIÓN SOLICITADA: ${totalMinutes} minutos (${calculatedMaxTracks} canciones aproximadamente)` : ''}
+${totalMinutes ? `DURACIÓN SOLICITADA POR EL USUARIO: ${totalMinutes} minutos (${finalMaxTracks} canciones aproximadamente)` : `DURACIÓN POR DEFECTO: ${DEFAULT_DURATION_MINUTES} minutos (${finalMaxTracks} canciones aproximadamente)`}
 
 DATOS DEL USUARIO DE SPOTIFY:
 - Géneros favoritos: ${userData.topGenres.join(", ") || "No especificados"}
@@ -189,9 +190,10 @@ DATOS DEL USUARIO DE SPOTIFY:
 
 INSTRUCCIONES:
 1. Interpreta el prompt del usuario identificando: actividad, intensidad y tiempo
-2. ${activityBPM ? `USA el rango de BPM ${activityBPM.min}-${activityBPM.max} para esta actividad. Las canciones deben tener un tempo (BPM) dentro de este rango.` : 'Identifica la actividad mencionada y ajusta el tempo según corresponda.'}
+2. ${activityBPM ? `⚠️ CRÍTICO: USA EXACTAMENTE el rango de BPM ${activityBPM.min}-${activityBPM.max} para esta actividad. El BPM (Beats Per Minute) es el tempo de la canción. TODAS las canciones seleccionadas DEBEN tener un tempo entre ${activityBPM.min} y ${activityBPM.max} BPM. Esto es obligatorio y no negociable.` : 'Identifica la actividad mencionada y ajusta el tempo según corresponda. Si hay una actividad específica (ej: correr, dormir, estudiar), calcula el rango de BPM apropiado.'}
 3. Combina el prompt con los gustos del usuario para crear una playlist personalizada
 4. Si el prompt contradice las preferencias del usuario, adapta los criterios al contexto del prompt pero mantén cierta conexión con sus gustos si es posible
+5. El BPM es fundamental: cada actividad tiene un rango de BPM ideal. Respeta este rango estrictamente.
 5. Genera un JSON válido con los siguientes campos:
    - playlistName: Nombre sugerido para la playlist (máximo 50 caracteres)
    - description: Descripción breve de la playlist (máximo 200 caracteres)
@@ -202,8 +204,8 @@ INSTRUCCIONES:
      - mood: "upbeat" o "mellow" (opcional)
      - artists: Array de nombres de artistas a incluir (opcional, máximo 3)
      - excludeGenres: Array de géneros a excluir (opcional)
-     - maxTracks: Número máximo de tracks ${calculatedMaxTracks ? `DEBE ser ${calculatedMaxTracks} para cumplir con la duración de ${totalMinutes} minutos` : '(entre 15 y 50, por defecto 30)'}
-     - bpmRange: [minBPM, maxBPM] ${activityBPM ? `⚠️ OBLIGATORIO: DEBE ser exactamente [${activityBPM.min}, ${activityBPM.max}]. NO uses otro rango.` : 'si es relevante (opcional)'}
+     - maxTracks: Número máximo de tracks. ${totalMinutes ? `DEBE ser ${finalMaxTracks} para cumplir con la duración de ${totalMinutes} minutos solicitada por el usuario.` : `DEBE ser ${finalMaxTracks} para cumplir con la duración por defecto de ${DEFAULT_DURATION_MINUTES} minutos.`}
+     - bpmRange: [minBPM, maxBPM] ${activityBPM ? `⚠️ OBLIGATORIO: DEBE ser exactamente [${activityBPM.min}, ${activityBPM.max}]. NO uses otro rango. El BPM se filtrará estrictamente en el backend, así que respeta este rango.` : 'si es relevante (opcional). El BPM representa los beats por minuto del tempo de la canción. Ejemplos: 60-80 BPM (muy lento, relajación), 120-140 BPM (moderado, caminar), 150-180 BPM (rápido, correr), 80-100 BPM (lento, meditación)'}
 
 IMPORTANTE: Responde SOLO con un JSON válido, sin texto adicional antes o después.
 
@@ -290,12 +292,8 @@ EJEMPLO DE RESPUESTA:
       criteria.description = `Playlist personalizada: ${criteria.playlistName}`
     }
 
-    // Si se calculó maxTracks basado en el tiempo, usarlo (tiene prioridad)
-    if (calculatedMaxTracks) {
-      criteria.criteria.maxTracks = calculatedMaxTracks
-    } else if (!criteria.criteria.maxTracks) {
-      criteria.criteria.maxTracks = 30
-    }
+    // Usar el maxTracks calculado basado en el tiempo (20 min por defecto o el especificado)
+    criteria.criteria.maxTracks = finalMaxTracks
 
     // Si identificamos una actividad con BPM, SIEMPRE forzar el bpmRange (CRUCIAL)
     // Esto es OBLIGATORIO - no es opcional
@@ -321,7 +319,7 @@ EJEMPLO DE RESPUESTA:
         energy: userData.musicPreferences.energy,
         tempo: userData.musicPreferences.tempo,
         mood: userData.musicPreferences.mood,
-        maxTracks: calculatedMaxTracks || 30,
+        maxTracks: finalMaxTracks,
         // BPM es OBLIGATORIO si hay actividad
         ...(activityBPM ? { bpmRange: [activityBPM.min, activityBPM.max] } : {}),
       },
