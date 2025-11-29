@@ -41,11 +41,9 @@ export async function searchDalePlayTracks(
     const seenAlbumIds = new Set<string>()
     
     // Buscar álbumes que puedan tener "Dale Play Records" como label
-    // Spotify no tiene búsqueda directa por label, así que buscamos por texto y luego verificamos el label real
+    // Solo usar una query para reducir requests
     const searchQueries = [
       'Dale Play Records',
-      'dale play records',
-      'Dale Play',
     ]
     
     for (const query of searchQueries) {
@@ -66,8 +64,8 @@ export async function searchDalePlayTracks(
             if (seenAlbumIds.has(album.id)) continue
             
             try {
-              // Agregar delay entre requests para evitar rate limiting (aumentado de 150ms a 300ms)
-              await new Promise(resolve => setTimeout(resolve, 300))
+              // Aumentar delay a 500ms para evitar rate limiting
+              await new Promise(resolve => setTimeout(resolve, 500))
               
               // Obtener detalles completos del álbum para ver el label
               const albumDetailsRes = await spotifyApiRequest(
@@ -100,8 +98,8 @@ export async function searchDalePlayTracks(
               seenAlbumIds.add(album.id)
               
               // Obtener los tracks del álbum
-              // Agregar delay entre requests para evitar rate limiting (aumentado de 150ms a 300ms)
-              await new Promise(resolve => setTimeout(resolve, 300))
+              // Aumentar delay a 500ms para evitar rate limiting
+              await new Promise(resolve => setTimeout(resolve, 500))
               
               const albumTracksRes = await spotifyApiRequest(
                 `/albums/${album.id}/tracks?limit=50&market=US`,
@@ -194,11 +192,9 @@ export async function searchDalePlayArtists(accessToken: string, limit: number =
     const seenArtistIds = new Set<string>()
     
     // Buscar álbumes que puedan tener "Dale Play Records" como label
-    // Verificamos el label real en los metadatos del álbum
+    // Solo usar una query para reducir requests
     const searchQueries = [
       'Dale Play Records',
-      'dale play records',
-      'Dale Play',
     ]
     
     for (const query of searchQueries) {
@@ -206,7 +202,7 @@ export async function searchDalePlayArtists(accessToken: string, limit: number =
       
       try {
         const albumSearchRes = await spotifyApiRequest(
-          `/search?q=${encodeURIComponent(query)}&type=album&limit=50&market=US`,
+          `/search?q=${encodeURIComponent(query)}&type=album&limit=10&market=US`,
           accessToken
         )
         const albumSearchData = await albumSearchRes.json()
@@ -217,8 +213,8 @@ export async function searchDalePlayArtists(accessToken: string, limit: number =
             if (artists.length >= limit) break
             
             try {
-              // Agregar delay entre requests para evitar rate limiting (aumentado de 150ms a 300ms)
-              await new Promise(resolve => setTimeout(resolve, 300))
+              // Aumentar delay a 500ms para evitar rate limiting
+              await new Promise(resolve => setTimeout(resolve, 500))
               
               // Obtener detalles completos del álbum para ver el label
               const albumDetailsRes = await spotifyApiRequest(

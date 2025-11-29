@@ -38,8 +38,8 @@ export async function POST(request: NextRequest) {
     // 3. Calcular cantidad de tracks basado en duración del prompt
     const maxTracks = extractDurationAndCalculateTracks(prompt.trim())
 
-    // 4. Obtener SOLO artistas del label (sin buscar todos los tracks - esto reduce drásticamente las requests)
-    const dalePlayArtists = await searchDalePlayArtists(accessToken, 30) // Solo necesitamos metadata de artistas
+    // 4. Obtener SOLO artistas del label (reducido a 15 para minimizar requests)
+    const dalePlayArtists = await searchDalePlayArtists(accessToken, 15) // Reducido de 30 a 15
 
     // Extraer géneros de los artistas
     const dalePlayGenres: string[] = []

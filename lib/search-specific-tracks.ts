@@ -98,9 +98,9 @@ export async function searchSpecificTracks(
         console.warn(`❌ No encontrado: "${query.trackName}" - ${query.artistName}`)
       }
 
-      // Agregar delay entre búsquedas para evitar rate limiting
+      // Aumentar delay a 500ms entre búsquedas para evitar rate limiting
       if (i < trackQueries.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 300)) // 300ms entre búsquedas
+        await new Promise(resolve => setTimeout(resolve, 500)) // 500ms entre búsquedas
       }
     } catch (error) {
       console.error(`Error procesando track "${query.trackName}":`, error)
