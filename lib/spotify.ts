@@ -49,7 +49,7 @@ export async function spotifyApiRequest(
   options: RequestInit = {},
   retryCount: number = 0
 ): Promise<Response> {
-  const maxRetries = 3
+  const maxRetries = 5 // Aumentar reintentos para rate limiting
   const baseDelay = 1000 // 1 segundo base
 
   const response = await fetch(`https://api.spotify.com/v1${endpoint}`, {
@@ -67,27 +67,45 @@ export async function spotifyApiRequest(
     let waitTime: number
     
     if (retryAfter) {
-      const retryAfterSeconds = parseInt(retryAfter, 10)
-      // Validar que el valor sea razonable (máximo 60 segundos)
-      // Si el valor es muy grande, usar un valor por defecto
-      if (isNaN(retryAfterSeconds) || retryAfterSeconds > 60 || retryAfterSeconds < 0) {
-        console.warn(`Retry-After inválido o muy grande (${retryAfter}), usando 10 segundos por defecto`)
-        waitTime = 10000 // 10 segundos
+      const retryAfterValue = parseInt(retryAfter, 10)
+      
+      // Spotify puede devolver Retry-After en segundos o milisegundos
+      // Si el valor es > 1000, probablemente esté en milisegundos
+      if (!isNaN(retryAfterValue) && retryAfterValue > 1000) {
+        // Probablemente está en milisegundos, usar directamente
+        waitTime = retryAfterValue
+        console.log(`[Spotify API] Retry-After interpretado como ms: ${waitTime}ms (${(waitTime / 1000).toFixed(1)}s)`)
+      } else if (!isNaN(retryAfterValue) && retryAfterValue >= 0) {
+        // Está en segundos, convertir a milisegundos
+        waitTime = retryAfterValue * 1000
+        console.log(`[Spotify API] Retry-After en segundos: ${retryAfterValue}s`)
       } else {
-        waitTime = retryAfterSeconds * 1000
+        // Valor inválido, usar exponential backoff
+        waitTime = Math.min(baseDelay * Math.pow(2, retryCount), 30000)
+        console.warn(`[Spotify API] Retry-After inválido (${retryAfter}), usando exponential backoff: ${waitTime / 1000}s`)
       }
     } else {
       // Si no hay Retry-After, usar exponential backoff
       waitTime = Math.min(baseDelay * Math.pow(2, retryCount), 30000) // Máximo 30 segundos
     }
     
+    // Limitar máximo a 1 hora para evitar esperas infinitas
+    const MAX_WAIT_TIME = 3600 * 1000 // 1 hora en milisegundos
+    if (waitTime > MAX_WAIT_TIME) {
+      console.warn(`[Spotify API] Tiempo de espera muy largo (${waitTime / 1000}s), limitando a 1 hora`)
+      waitTime = MAX_WAIT_TIME
+    }
+    
     if (retryCount < maxRetries) {
       const waitTimeSeconds = (waitTime / 1000).toFixed(1)
-      console.log(`[Spotify API] Rate limit alcanzado. Esperando ${waitTimeSeconds}s antes de reintentar... (intento ${retryCount + 1}/${maxRetries})`)
+      const waitTimeMinutes = (waitTime / 60000).toFixed(1)
+      const waitTimeDisplay = waitTime > 60000 ? `${waitTimeMinutes}m` : `${waitTimeSeconds}s`
+      
+      console.log(`[Spotify API] Rate limit alcanzado. Esperando ${waitTimeDisplay} antes de reintentar... (intento ${retryCount + 1}/${maxRetries})`)
       await new Promise(resolve => setTimeout(resolve, waitTime))
       return spotifyApiRequest(endpoint, accessToken, options, retryCount + 1)
     } else {
-      throw new Error("Rate limit excedido después de múltiples intentos. Por favor intenta más tarde.")
+      throw new Error(`Rate limit excedido después de ${maxRetries} intentos. Spotify sugiere esperar ${waitTime > 60000 ? `${(waitTime / 60000).toFixed(1)} minutos` : `${(waitTime / 1000).toFixed(0)} segundos`}. Por favor intenta más tarde.`)
     }
   }
 
