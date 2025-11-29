@@ -34,6 +34,7 @@ async function searchAndValidateDalePlayAlbums(
 ): Promise<ValidatedAlbum[]> {
   try {
     // 1. Buscar álbumes (1 request)
+    console.log(`[searchAndValidateDalePlayAlbums] 🔍 Buscando álbumes del label "${DALE_PLAY_LABEL}"...`)
     const albumSearchRes = await spotifyApiRequest(
       `/search?q=${encodeURIComponent(`label:"${DALE_PLAY_LABEL}"`)}&type=album&limit=${MAX_ALBUMS_TO_SEARCH}&market=US`,
       accessToken
@@ -65,6 +66,7 @@ async function searchAndValidateDalePlayAlbums(
       }
 
       try {
+        console.log(`[searchAndValidateDalePlayAlbums] 📀 Obteniendo detalles del álbum: "${album.name}" (ID: ${album.id})`)
         const albumDetailsRes = await spotifyApiRequest(
           `/albums/${album.id}?market=US`,
           accessToken
@@ -162,13 +164,14 @@ export async function searchDalePlayArtistsOptimized(
     // 4. Obtener información completa de artistas (1 request combinado)
     const artistIds = artists.map(a => a.id).slice(0, 50) // Spotify limita a 50
     
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500)) // Delay antes del request
-      
-      const artistsInfoRes = await spotifyApiRequest(
-        `/artists?ids=${artistIds.join(',')}`,
-        accessToken
-      )
+      try {
+        await new Promise(resolve => setTimeout(resolve, 500)) // Delay antes del request
+        
+        console.log(`[searchDalePlayArtistsOptimized] 🎤 Obteniendo información de ${artistIds.length} artistas...`)
+        const artistsInfoRes = await spotifyApiRequest(
+          `/artists?ids=${artistIds.join(',')}`,
+          accessToken
+        )
 
       if (artistsInfoRes.ok) {
         const artistsInfoData = await artistsInfoRes.json()
@@ -240,6 +243,7 @@ export async function searchDalePlayTracksOptimized(
       }
 
       try {
+        console.log(`[searchDalePlayTracksOptimized] 🎵 Obteniendo tracks del álbum: "${album.name}" (ID: ${album.id})`)
         const albumTracksRes = await spotifyApiRequest(
           `/albums/${album.id}/tracks?limit=50&market=US`,
           accessToken
@@ -288,13 +292,14 @@ export async function searchDalePlayTracksOptimized(
     // 4. Obtener información completa de tracks (1 request combinado, en lotes de 50)
     const trackIds = tracks.map(t => t.id).slice(0, 50)
     
-    try {
-      await new Promise(resolve => setTimeout(resolve, 500)) // Delay antes del request
-      
-      const tracksInfoRes = await spotifyApiRequest(
-        `/tracks?ids=${trackIds.join(',')}&market=US`,
-        accessToken
-      )
+      try {
+        await new Promise(resolve => setTimeout(resolve, 500)) // Delay antes del request
+        
+        console.log(`[searchDalePlayTracksOptimized] 🎧 Obteniendo información completa de ${trackIds.length} tracks...`)
+        const tracksInfoRes = await spotifyApiRequest(
+          `/tracks?ids=${trackIds.join(',')}&market=US`,
+          accessToken
+        )
 
       if (tracksInfoRes.ok) {
         const tracksInfoData = await tracksInfoRes.json()

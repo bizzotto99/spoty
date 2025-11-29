@@ -52,7 +52,17 @@ export async function spotifyApiRequest(
   const maxRetries = 5 // Aumentar reintentos para rate limiting
   const baseDelay = 1000 // 1 segundo base
 
-  const response = await fetch(`https://api.spotify.com/v1${endpoint}`, {
+  // Log antes de hacer el request
+  const method = options.method || 'GET'
+  const fullUrl = `https://api.spotify.com/v1${endpoint}`
+  const timestamp = new Date().toISOString()
+  
+  console.log(`[Spotify API Request #${retryCount + 1}] ${timestamp}`)
+  console.log(`  Method: ${method}`)
+  console.log(`  Endpoint: ${endpoint}`)
+  console.log(`  Full URL: ${fullUrl}`)
+  
+  const response = await fetch(fullUrl, {
     ...options,
     headers: {
       Authorization: `Bearer ${accessToken}`,
@@ -60,6 +70,14 @@ export async function spotifyApiRequest(
       ...options.headers,
     },
   })
+
+  // Log después de recibir respuesta
+  console.log(`[Spotify API Response] ${timestamp}`)
+  console.log(`  Status: ${response.status} ${response.statusText}`)
+  
+  if (!response.ok) {
+    console.log(`  ❌ Error en request: ${endpoint}`)
+  }
 
   // Manejar rate limiting (429 Too Many Requests)
   if (response.status === 429) {

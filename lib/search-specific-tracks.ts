@@ -22,6 +22,7 @@ async function searchSingleTrack(
   try {
     // Buscar track con query: "track:{trackName} artist:{artistName}"
     const query = `track:"${trackName}" artist:"${artistName}"`
+    console.log(`[searchSingleTrack] 🔍 Buscando: "${trackName}" de "${artistName}"`)
     const searchRes = await spotifyApiRequest(
       `/search?q=${encodeURIComponent(query)}&type=track&limit=5&market=US`,
       accessToken
