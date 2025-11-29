@@ -30,8 +30,15 @@ export function useSpotifyAuth(): UseSpotifyAuthReturn {
       (window.location.hostname === "localhost" || 
        window.location.hostname === "127.0.0.1")
     
+    // Activar mock automáticamente en desarrollo si está en la URL o localStorage
+    // También se puede activar manualmente con ?mock=true
+    const urlParams = new URLSearchParams(window.location.search)
+    if (isDevelopment && urlParams.get("mock") === "true") {
+      localStorage.setItem("spoty_mock_mode", "true")
+    }
+    
     const isMockMode = isDevelopment && 
-      (window.location.search.includes("mock=true") || 
+      (urlParams.get("mock") === "true" || 
        localStorage.getItem("spoty_mock_mode") === "true")
 
     // Si está en modo mock, simular usuario
@@ -39,10 +46,10 @@ export function useSpotifyAuth(): UseSpotifyAuthReturn {
       setIsAuthenticated(true)
       setUser({
         id: "mock_user_123",
-        display_name: "Mock User",
-        email: "mock@example.com",
+        display_name: "Ivan Levy",
+        email: "ivan@dotasolutions.agency",
         images: [{
-          url: "https://via.placeholder.com/300/1DB954/000000?text=User"
+          url: "https://i.scdn.co/image/ab6775700000ee85c8d027b6e57b5c4e5c5b5b5b"
         }]
       })
       setIsLoading(false)

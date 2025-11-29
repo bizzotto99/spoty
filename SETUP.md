@@ -165,6 +165,10 @@ SPOTIFY_CLIENT_ID=tu_client_id_aqui
 SPOTIFY_CLIENT_SECRET=tu_client_secret_aqui
 SPOTIFY_REDIRECT_URI=https://spoty-three.vercel.app/api/auth/callback
 GEMINI_API_KEY=tu_gemini_api_key_aqui
+
+# Supabase (opcional - solo si usas base de datos)
+NEXT_PUBLIC_SUPABASE_URL=tu_supabase_url_aqui
+NEXT_PUBLIC_SUPABASE_ANON_KEY=tu_supabase_anon_key_aqui
 ```
 
 ⚠️ **Importante**: 
@@ -296,4 +300,74 @@ Después de configurar la autenticación:
 - Terminal (desarrollo local)
 - Vercel Dashboard → Deployments → Tu deployment → Functions (producción)
 
+---
 
+## 📋 Paso 3: Configurar Supabase (Base de Datos - Opcional)a
+
+Si quieres usar una base de datos para guardar información de usuarios, playlists, etc., puedes configurar Supabase.
+
+### 3.1 Crear Proyecto en Supabase
+
+1. Ve a https://supabase.com
+2. Inicia sesión o crea una cuenta
+3. Haz clic en **"New Project"**
+4. Completa el formulario:
+   - **Project name**: Nombre de tu proyecto (ej: "spoty-db")
+   - **Database Password**: Crea una contraseña segura (guárdala)
+   - **Region**: Selecciona la región más cercana
+5. Haz clic en **"Create new project"** y espera ~2 minutos
+
+### 3.2 Obtener Credenciales
+
+1. En tu proyecto de Supabase, ve a **Settings** (⚙️) → **API**
+2. Copia estos valores:
+
+   - **Project URL**: 
+     ```
+     https://xxxxx.supabase.co
+     ```
+   
+   - **anon public key**: 
+     ```
+     eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+     ```
+     (Es la key que empieza con `eyJ`)
+
+### 3.3 Agregar Variables de Entorno
+
+Agrega estas líneas a tu `.env.local`:
+
+```env
+NEXT_PUBLIC_SUPABASE_URL=https://tu-proyecto.supabase.co
+NEXT_PUBLIC_SUPABASE_ANON_KEY=eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+```
+
+⚠️ **Importante**:
+- Reemplaza `tu-proyecto` con tu Project URL real
+- Reemplaza la key con tu `anon public` key real
+- El prefijo `NEXT_PUBLIC_` es necesario para que Next.js exponga estas variables al cliente
+
+### 3.4 Crear las Tablas
+
+1. En tu proyecto de Supabase, ve a **SQL Editor** (menú lateral)
+2. Haz clic en **"New query"**
+3. Abre el archivo `supabase-schema.sql` en este proyecto
+4. Copia y pega todo el contenido en el editor SQL
+5. Haz clic en **"Run"** o presiona `Ctrl+Enter`
+
+Esto creará las tablas necesarias:
+- `label_records` - Almacena los records labels
+- `users` - Almacena información de usuarios
+- `playlists` - Almacena las playlists generadas
+
+### 3.5 Configurar en Vercel (Producción)
+
+1. Ve a tu proyecto en https://vercel.com/dashboard
+2. Ve a **Settings** → **Environment Variables**
+3. Agrega:
+   - `NEXT_PUBLIC_SUPABASE_URL`
+   - `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+4. Selecciona los ambientes (Production, Preview, Development)
+5. Guarda y vuelve a hacer deploy
+
+---

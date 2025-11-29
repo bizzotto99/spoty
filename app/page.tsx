@@ -61,38 +61,38 @@ export default function PlaylistPrompt() {
     if (error) {
       console.error("Authentication error:", error)
       
-      let errorMessage = "Connection failed"
-      let errorDescription = "Please try connecting again"
+      let errorMessage = "Oops! Connection failed"
+      let errorDescription = "Let's try again"
       
       switch (error) {
         case "user_fetch_failed":
-          errorMessage = "Could not fetch user information"
-          errorDescription = "There was a problem retrieving your Spotify account. Please try again."
+          errorMessage = "Couldn't get your info"
+          errorDescription = "Try connecting again"
           break
         case "token_exchange_failed":
-          errorMessage = "Authentication failed"
-          errorDescription = "Could not complete authentication. Please try again."
+          errorMessage = "Connection issue"
+          errorDescription = "Give it another shot"
           break
         case "invalid_state":
-          errorMessage = "Security check failed"
-          errorDescription = "Please try connecting again."
+          errorMessage = "Security check"
+          errorDescription = "Please reconnect"
           break
         default:
-          errorMessage = "Connection failed"
-          errorDescription = `Error: ${error}. Please try again.`
+          errorMessage = "Something went wrong"
+          errorDescription = "Try again in a moment"
       }
       
       toast.error(errorMessage, {
         description: errorDescription,
-        duration: 5000,
+        duration: 4000,
       })
       window.history.replaceState({}, "", "/")
     } else if (connected === "true") {
       // Limpiar la URL - el hook manejará la verificación
       window.history.replaceState({}, "", "/")
       // Mostrar mensaje de éxito
-      toast.success("Connected!", {
-        description: "Your Spotify account is now connected",
+      toast.success("All set!", {
+        description: "You're connected to Spotify",
         duration: 2000,
       })
     }
@@ -133,8 +133,8 @@ export default function PlaylistPrompt() {
     }
 
     if (!prompt.trim()) {
-      toast.error("Describe your playlist", {
-        description: "Tell us what you want to listen to!",
+      toast.error("What do you want to hear?", {
+        description: "Tell us about your playlist",
         duration: 3000,
       })
       return
@@ -146,12 +146,12 @@ export default function PlaylistPrompt() {
     if (!validation.isValid) {
       const errorMessage = validation.errors.length === 1 
         ? validation.errors[0]
-        : "Faltan campos obligatorios"
+        : "Missing info"
       const errorDescription = validation.errors.join(". ")
       
       toast.error(errorMessage, {
         description: errorDescription,
-        duration: 5000,
+        duration: 4000,
       })
       return
     }
@@ -194,10 +194,10 @@ export default function PlaylistPrompt() {
       setFlowState('preview')
     } catch (error) {
       clearInterval(messageInterval)
-      const errorMessage = error instanceof Error ? error.message : "Please try again"
-      toast.error("Error generating playlist", {
+      const errorMessage = error instanceof Error ? error.message : "Try again"
+      toast.error("Couldn't create playlist", {
         description: errorMessage,
-        duration: 5000,
+        duration: 4000,
       })
       setFlowState('idle')
     }
@@ -235,10 +235,10 @@ export default function PlaylistPrompt() {
       // Paso 4: Éxito
       setFlowState('success')
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Please try again"
-      toast.error("Error creating playlist", {
+      const errorMessage = error instanceof Error ? error.message : "Try again"
+      toast.error("Couldn't save to Spotify", {
         description: errorMessage,
-        duration: 5000,
+        duration: 4000,
       })
       setFlowState('preview')
     }
@@ -252,10 +252,10 @@ export default function PlaylistPrompt() {
       setPlaylistName(result.playlistName)
       setFlowState('preview')
     }).catch((error) => {
-      const errorMessage = error instanceof Error ? error.message : "Please try again"
-      toast.error("Error regenerating playlist", {
+      const errorMessage = error instanceof Error ? error.message : "Try again"
+      toast.error("Couldn't regenerate", {
         description: errorMessage,
-        duration: 5000,
+        duration: 4000,
       })
       setFlowState('idle')
     })
@@ -276,8 +276,8 @@ export default function PlaylistPrompt() {
     e.preventDefault()
     
     if (!editPrompt.trim()) {
-      toast.error("Please enter a prompt", {
-        description: "Describe how you want to modify the playlist",
+      toast.error("What should we change?", {
+        description: "Tell us how to modify it",
         duration: 3000,
       })
       return
@@ -289,15 +289,15 @@ export default function PlaylistPrompt() {
       const result = await generateTracks(editPrompt)
       setTracks(result.tracks)
       setEditPrompt("")
-      toast.success("Playlist updated!", {
-        description: "Your playlist has been modified",
+      toast.success("Updated!", {
+        description: "Your playlist is ready",
         duration: 2000,
       })
     } catch (error) {
-      const errorMessage = error instanceof Error ? error.message : "Please try again"
-      toast.error("Error editing playlist", {
+      const errorMessage = error instanceof Error ? error.message : "Try again"
+      toast.error("Couldn't update playlist", {
         description: errorMessage,
-        duration: 5000,
+        duration: 4000,
       })
     }
   }
@@ -305,8 +305,8 @@ export default function PlaylistPrompt() {
   // Eliminar track
   const handleDeleteTrack = (trackId: string) => {
     setTracks(tracks.filter(track => track.id !== trackId))
-    toast.success("Track removed", {
-      description: "The track has been removed from the playlist",
+    toast.success("Removed!", {
+      description: "Track removed from playlist",
       duration: 2000,
     })
   }
@@ -384,7 +384,7 @@ export default function PlaylistPrompt() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium hover:opacity-90"
+                  className="flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium hover:opacity-90 min-w-[180px] justify-between"
                   style={{
                     backgroundColor: "#000",
                     color: "#1DB954",
@@ -399,25 +399,30 @@ export default function PlaylistPrompt() {
                     e.currentTarget.style.transform = "scale(1)"
                   }}
                 >
-                  {/* User avatar */}
-                  {user.images && user.images[0] ? (
-                    <img
-                      src={user.images[0].url}
-                      alt={user.display_name || "User"}
-                      className="w-7 h-7 rounded-full"
-                    />
-                  ) : (
-                    <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
-                      style={{ backgroundColor: "#1DB954", color: "#000" }}
-                    >
-                      {user.display_name?.charAt(0).toUpperCase() || "U"}
-          </div>
-                  )}
-                  {/* Greeting and name */}
-                  <span className="text-sm font-medium" style={{ color: "#1DB954" }}>
-                    Hello, {user.display_name?.split(" ")[0] || user.email?.split("@")[0] || "User"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {/* User avatar */}
+                    {user.images && user.images[0] ? (
+                      <img
+                        src={user.images[0].url}
+                        alt={user.display_name || "User"}
+                        className="w-7 h-7 rounded-full"
+                      />
+                    ) : (
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
+                        style={{ backgroundColor: "#1DB954", color: "#000" }}
+                      >
+                        {user.display_name?.charAt(0).toUpperCase() || "U"}
+                      </div>
+                    )}
+                    {/* Greeting and name */}
+                    <span className="text-sm font-medium truncate max-w-[60px]" style={{ color: "#1DB954" }}>
+                      Hi, {(() => {
+                        const name = user.display_name?.split(" ")[0] || user.email?.split("@")[0] || "User"
+                        return name.length > 4 ? name.substring(0, 4) + "..." : name
+                      })()}
+                    </span>
+                  </div>
                   <ChevronDown size={16} style={{ color: "#1DB954" }} />
                 </button>
               </DropdownMenuTrigger>
@@ -435,7 +440,7 @@ export default function PlaylistPrompt() {
                   style={{ color: "#fff" }}
                 >
                   <ListMusic className="mr-2 h-4 w-4" />
-                  <span>My Playlists</span>
+                  <span className="font-normal">My Playlists</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={logout}
@@ -445,30 +450,42 @@ export default function PlaylistPrompt() {
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
+                
+                {/* Plaquita Dale Play */}
+                <div className="pl-2 pr-3 py-2 flex items-center gap-1 cursor-default border-t border-[#333]" style={{ backgroundColor: "#1a1a1a" }}>
+                  <img 
+                    src="/dp.png" 
+                    alt="Dale Play" 
+                    className="h-4 w-auto opacity-80"
+                  />
+                  <p className="font-semibold text-xs opacity-50" style={{ fontFamily: "system-ui, -apple-system, sans-serif", color: "#fff" }}>
+                    Dale Play
+                  </p>
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
             <div className="flex items-center gap-4">
               {/* Connect button */}
-          <button
-                onClick={login}
-            className="px-5 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
-            style={{
-              backgroundColor: "#000",
-              color: "#1DB954",
-              border: "1px solid transparent",
-            }}
-            onMouseEnter={(e) => {
-              e.currentTarget.style.boxShadow = "0 0 12px rgba(29, 185, 84, 0.3)"
-              e.currentTarget.style.transform = "scale(1.02)"
-            }}
-            onMouseLeave={(e) => {
-              e.currentTarget.style.boxShadow = "none"
-              e.currentTarget.style.transform = "scale(1)"
-            }}
-          >
-                Connect with Spotify
-          </button>
+            <button
+              onClick={login}
+              className="px-5 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
+              style={{
+                backgroundColor: "#000",
+                color: "#1DB954",
+                border: "1px solid transparent",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.boxShadow = "0 0 12px rgba(29, 185, 84, 0.3)"
+                e.currentTarget.style.transform = "scale(1.02)"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.boxShadow = "none"
+                e.currentTarget.style.transform = "scale(1)"
+              }}
+            >
+              Connect with Spotify
+            </button>
             </div>
           )}
         </div>
@@ -483,10 +500,10 @@ export default function PlaylistPrompt() {
               style={{ 
                 color: "#ffffff",
                 fontFamily: "var(--font-instrument-serif), 'Instrument Serif', serif",
-                letterSpacing: "-0.02em",
+                letterSpacing: "0.02em",
               }}
             >
-              Scale Your Playlist Creation for Your Label
+              Scale Your <br /> Playlist Creation
             </h1>
           ) : (
             <h1 
@@ -494,10 +511,10 @@ export default function PlaylistPrompt() {
               style={{ 
                 color: "#ffffff",
                 fontFamily: "var(--font-instrument-serif), 'Instrument Serif', serif",
-                letterSpacing: "-0.03em",
+                letterSpacing: "0.01em",
               }}
             >
-              smart playlisting in-house
+              Smart Playlisting <br /> Powered by AI
             </h1>
           )}
           
@@ -549,10 +566,10 @@ export default function PlaylistPrompt() {
                 <div className="flex-1">
                   <p className="text-sm font-medium text-white mb-2">Tips for better results:</p>
                   <ul className="text-xs text-gray-400 space-y-1 list-disc list-inside">
-                    <li>Be specific about mood, genre, or activity (e.g., "energetic workout mix", "chill evening vibes")</li>
-                    <li>Mention tempo preferences (e.g., "fast-paced", "slow and relaxing")</li>
-                    <li>Include artist names or song references for style guidance</li>
-                    <li>Describe the occasion or setting (e.g., "party playlist", "focus music")</li>
+                    <li><strong>Activity:</strong> Specify what you'll be doing (e.g., running, studying, working, gym)</li>
+                    <li><strong>Context:</strong> Describe the setting or occasion (e.g., morning commute, party, focus session)</li>
+                    <li><strong>Time:</strong> Include the duration (e.g., 30 minutes, 1 hour, 2 hours)</li>
+                    <li>You can also mention intensity, mood, or genre preferences for more personalized results</li>
                   </ul>
                 </div>
               </div>
