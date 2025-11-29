@@ -73,13 +73,13 @@ export async function POST(request: NextRequest) {
       )
     }
 
-    // 4. Crear la playlist con imagen por defecto desde URL de internet
+    // 4. Crear la playlist con imagen por defecto desde archivo local
     const result = await createPlaylistInSpotify(accessToken, userId, {
       name: name.trim(),
       description: description || "",
       tracks: trackUris,
       isPublic: true,
-      imageUrl: "https://v0-image-to-page-steel.vercel.app/images/playlist.png", // Imagen desde internet
+      imagePath: "playlist.png", // Imagen desde /public/playlist.png
     })
 
     // 5. Guardar la playlist en la base de datos

@@ -48,11 +48,16 @@ export async function spotifyApiRequest(
   accessToken: string,
   options: RequestInit = {}
 ): Promise<Response> {
+  // Si ya viene Content-Type en options.headers, usarlo; sino, usar application/json por defecto
+  const defaultContentType = options.headers && "Content-Type" in options.headers 
+    ? {} 
+    : { "Content-Type": "application/json" }
+
   const response = await fetch(`https://api.spotify.com/v1${endpoint}`, {
     ...options,
     headers: {
       Authorization: `Bearer ${accessToken}`,
-      "Content-Type": "application/json",
+      ...defaultContentType,
       ...options.headers,
     },
   })

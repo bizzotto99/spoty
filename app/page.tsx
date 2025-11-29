@@ -400,28 +400,28 @@ export default function PlaylistPrompt() {
                   }}
                 >
                   <div className="flex items-center gap-2">
-                    {/* User avatar */}
-                    {user.images && user.images[0] ? (
-                      <img
-                        src={user.images[0].url}
-                        alt={user.display_name || "User"}
-                        className="w-7 h-7 rounded-full"
-                      />
-                    ) : (
-                      <div
-                        className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
-                        style={{ backgroundColor: "#1DB954", color: "#000" }}
-                      >
-                        {user.display_name?.charAt(0).toUpperCase() || "U"}
-                      </div>
-                    )}
-                    {/* Greeting and name */}
+                  {/* User avatar */}
+                  {user.images && user.images[0] ? (
+                    <img
+                      src={user.images[0].url}
+                      alt={user.display_name || "User"}
+                      className="w-7 h-7 rounded-full"
+                    />
+                  ) : (
+                    <div
+                      className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
+                      style={{ backgroundColor: "#1DB954", color: "#000" }}
+                    >
+                      {user.display_name?.charAt(0).toUpperCase() || "U"}
+                    </div>
+                  )}
+                  {/* Greeting and name */}
                     <span className="text-sm font-medium truncate max-w-[60px]" style={{ color: "#1DB954" }}>
                       Hi, {(() => {
                         const name = user.display_name?.split(" ")[0] || user.email?.split("@")[0] || "User"
                         return name.length > 4 ? name.substring(0, 4) + "..." : name
                       })()}
-                    </span>
+                  </span>
                   </div>
                   <ChevronDown size={16} style={{ color: "#1DB954" }} />
                 </button>
@@ -435,7 +435,10 @@ export default function PlaylistPrompt() {
                 }}
               >
                 <DropdownMenuItem
-                  onClick={() => router.push("/my-playlists")}
+                  onClick={(e) => {
+                    e.preventDefault()
+                    router.push("/my-playlists")
+                  }}
                   className="cursor-pointer focus:bg-[#1DB954] focus:text-black"
                   style={{ color: "#fff" }}
                 >
@@ -491,12 +494,55 @@ export default function PlaylistPrompt() {
         </div>
       </nav>
 
-      <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-8">
+      <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-8 pt-32">
         {flowState === 'idle' && (
-        <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center gap-4">
+        <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center gap-4 relative">
+          {/* Globos decorativos */}
+          <div className="absolute -top-16 left-0 hidden md:block" style={{ transform: "rotate(-12deg)" }}>
+            <div className="relative bg-[#1DB954] rounded-2xl px-4 py-2 shadow-lg" style={{ border: "1px solid #1DB954" }}>
+              <p className="text-black text-sm font-medium whitespace-nowrap" style={{ letterSpacing: "0.05em" }}>"Energetic workout mix"</p>
+              {/* Triángulo apuntando hacia abajo */}
+              <div 
+                className="absolute bottom-0 right-6" 
+                style={{ 
+                  transform: "translateY(100%)",
+                  width: "0",
+                  height: "0",
+                  borderLeft: "8px solid transparent",
+                  borderRight: "8px solid transparent",
+                  borderTop: "8px solid #1DB954",
+                  outline: "none",
+                  borderBottom: "none",
+                  lineHeight: "0"
+                }}
+              />
+            </div>
+          </div>
+          
+          <div className="absolute -top-16 right-0 hidden md:block" style={{ transform: "rotate(12deg)" }}>
+            <div className="relative bg-[#1DB954] rounded-2xl px-4 py-2 shadow-lg" style={{ border: "1px solid #1DB954" }}>
+              <p className="text-black text-sm font-medium whitespace-nowrap" style={{ letterSpacing: "0.05em" }}>"Slow and relaxing"</p>
+              {/* Triángulo apuntando hacia abajo */}
+              <div 
+                className="absolute bottom-0 right-6" 
+                style={{ 
+                  transform: "translateY(100%)",
+                  width: "0",
+                  height: "0",
+                  borderLeft: "8px solid transparent",
+                  borderRight: "8px solid transparent",
+                  borderTop: "8px solid #1DB954",
+                  outline: "none",
+                  borderBottom: "none",
+                  lineHeight: "0"
+                }}
+              />
+            </div>
+          </div>
+
           {isAuthenticated ? (
             <h1 
-              className="text-5xl mb-8 text-center font-bold"
+              className="text-6xl mb-8 text-center font-semibold relative z-10"
               style={{ 
                 color: "#ffffff",
                 fontFamily: "var(--font-instrument-serif), 'Instrument Serif', serif",
@@ -507,7 +553,7 @@ export default function PlaylistPrompt() {
             </h1>
           ) : (
             <h1 
-              className="text-5xl mb-8 text-center font-bold"
+              className="text-6xl mb-8 text-center font-semibold relative z-10"
               style={{ 
                 color: "#ffffff",
                 fontFamily: "var(--font-instrument-serif), 'Instrument Serif', serif",

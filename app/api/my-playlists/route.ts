@@ -49,15 +49,23 @@ export async function GET(request: NextRequest) {
 
           if (spotifyResponse.ok) {
             const spotifyData = await spotifyResponse.json()
+            // Obtener la imagen de la playlist (puede tener múltiples imágenes, tomar la primera)
+            const playlistImage = spotifyData.images && spotifyData.images.length > 0 
+              ? spotifyData.images[0].url 
+              : "/playlist.png"
+            
             return {
               id: playlist.id,
               spotify_playlist_id: playlist.spotify_playlist_id,
               name: spotifyData.name,
               description: spotifyData.description || "",
-              image: "/playlist.png",
+              image: playlistImage,
               tracks_count: spotifyData.tracks?.total || 0,
               external_url: spotifyData.external_urls?.spotify || "",
               created_at: playlist.created_at,
+              followers: spotifyData.followers?.total || 0,
+              views: 0, // Spotify no proporciona views directamente
+              saves: 0, // Spotify no proporciona saves directamente
             }
           } else {
             // Si no se puede obtener de Spotify, devolver datos básicos
@@ -70,6 +78,9 @@ export async function GET(request: NextRequest) {
               tracks_count: 0,
               external_url: "",
               created_at: playlist.created_at,
+              followers: 0,
+              views: 0,
+              saves: 0,
             }
           }
         } catch (error) {
@@ -83,6 +94,9 @@ export async function GET(request: NextRequest) {
             tracks_count: 0,
             external_url: "",
             created_at: playlist.created_at,
+            followers: 0,
+            views: 0,
+            saves: 0,
           }
         }
       })
