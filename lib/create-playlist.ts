@@ -74,10 +74,10 @@ export async function createPlaylistInSpotify(
         // Continuar con el siguiente lote aunque falle uno
       }
 
-      // Agregar un pequeño delay entre lotes para evitar rate limiting
-      // Solo si no es el último lote
+      // Agregar delay entre lotes para evitar rate limiting
+      // Aumentar el delay para ser más conservador con los rate limits
       if (i + batchSize < trackUris.length) {
-        await new Promise(resolve => setTimeout(resolve, 200)) // 200ms entre lotes
+        await new Promise(resolve => setTimeout(resolve, 500)) // 500ms entre lotes
       }
     }
 

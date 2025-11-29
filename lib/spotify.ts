@@ -89,11 +89,19 @@ export async function spotifyApiRequest(
       waitTime = Math.min(baseDelay * Math.pow(2, retryCount), 30000) // Máximo 30 segundos
     }
     
-    // Limitar máximo a 1 hora para evitar esperas infinitas
-    const MAX_WAIT_TIME = 3600 * 1000 // 1 hora en milisegundos
+    // Limitar máximo a 5 minutos para evitar esperas muy largas que superen el timeout de la API route
+    const MAX_WAIT_TIME = 5 * 60 * 1000 // 5 minutos en milisegundos
     if (waitTime > MAX_WAIT_TIME) {
-      console.warn(`[Spotify API] Tiempo de espera muy largo (${waitTime / 1000}s), limitando a 1 hora`)
+      console.warn(`[Spotify API] Tiempo de espera muy largo (${waitTime / 1000}s), limitando a 5 minutos`)
       waitTime = MAX_WAIT_TIME
+    }
+    
+    // Si el tiempo de espera es muy largo (> 2 minutos), es mejor fallar rápido que esperar
+    // porque probablemente el proceso completo va a timeout antes de completarse
+    const MAX_REASONABLE_WAIT = 2 * 60 * 1000 // 2 minutos
+    if (waitTime > MAX_REASONABLE_WAIT && retryCount === 0) {
+      console.error(`[Spotify API] Rate limit muy alto (${(waitTime / 1000).toFixed(0)}s). Es mejor reintentar más tarde.`)
+      throw new Error(`Rate limit muy alto. Spotify sugiere esperar ${(waitTime / 60000).toFixed(1)} minutos. Por favor intenta crear la playlist más tarde.`)
     }
     
     if (retryCount < maxRetries) {

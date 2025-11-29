@@ -4,6 +4,9 @@ import { createPlaylistInSpotify } from "@/lib/create-playlist"
 import { getUserBySpotifyId } from "@/lib/supabase-users"
 import { createPlaylist as createPlaylistInDB } from "@/lib/supabase-playlists"
 
+// Configurar tiempo máximo de ejecución: 300 segundos (5 minutos)
+export const maxDuration = 300
+
 /**
  * API Route para crear la playlist en Spotify del usuario
  */
