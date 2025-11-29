@@ -224,112 +224,152 @@ EJEMPLO DE RESPUESTA:
   }
 }`
 
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash-latest:generateContent?key=${GEMINI_API_KEY}`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          contents: [
-            {
-              parts: [
-                {
-                  text: prompt,
-                },
-              ],
-            },
-          ],
-        }),
+  // Lista de modelos a intentar en orden de preferencia
+  const models = [
+    { name: "gemini-2.0-flash-exp", version: "v1beta" },
+    { name: "gemini-2.0-flash", version: "v1beta" },
+    { name: "gemini-1.5-flash-8b", version: "v1beta" },
+    { name: "gemini-1.5-flash", version: "v1beta" },
+    { name: "gemini-1.5-pro", version: "v1beta" },
+    { name: "gemini-pro", version: "v1" },
+    { name: "gemini-1.0-pro", version: "v1beta" },
+  ]
+
+  let lastError: Error | null = null
+
+  for (const model of models) {
+    try {
+      const apiVersion = model.version
+      const response = await fetch(
+        `https://generativelanguage.googleapis.com/${apiVersion}/models/${model.name}:generateContent?key=${GEMINI_API_KEY}`,
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            contents: [
+              {
+                parts: [
+                  {
+                    text: prompt,
+                  },
+                ],
+              },
+            ],
+          }),
+        }
+      )
+
+      if (!response.ok) {
+        const errorText = await response.text()
+        let errorData
+        try {
+          errorData = JSON.parse(errorText)
+        } catch {
+          errorData = { message: errorText }
+        }
+        
+        // Si es 404, intentar con el siguiente modelo
+        if (response.status === 404) {
+          console.log(`Modelo ${model.name} no disponible (404), intentando siguiente modelo...`)
+          lastError = new Error(`Modelo ${model.name} no encontrado`)
+          continue
+        }
+        
+        // Para otros errores, registrar y continuar
+        console.error(`Error en Gemini API con modelo ${model.name}:`, errorData)
+        lastError = new Error(`Gemini API error: ${response.status} ${JSON.stringify(errorData)}`)
+        continue
       }
-    )
 
-    if (!response.ok) {
-      const errorText = await response.text()
-      console.error("Error en Gemini API:", errorText)
-      throw new Error(`Gemini API error: ${response.status} ${errorText}`)
+        // Si llegamos aquí, la respuesta fue exitosa
+      const data = await response.json()
+      console.log(`✅ Modelo ${model.name} funcionó correctamente`)
+
+      // Extraer el texto de la respuesta
+      const responseText =
+        data.candidates?.[0]?.content?.parts?.[0]?.text ||
+        ""
+
+      if (!responseText) {
+        throw new Error("No se recibió respuesta de Gemini")
+      }
+
+      // Intentar parsear el JSON de la respuesta
+      // Gemini a veces envuelve el JSON en markdown, así que lo limpiamos
+      let jsonText = responseText.trim()
+      
+      // Remover markdown code blocks si existen
+      jsonText = jsonText.replace(/```json\n?/g, "").replace(/```\n?/g, "")
+      jsonText = jsonText.trim()
+
+      // Buscar el primer { y último } para extraer solo el JSON
+      const firstBrace = jsonText.indexOf("{")
+      const lastBrace = jsonText.lastIndexOf("}")
+
+      if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
+        jsonText = jsonText.substring(firstBrace, lastBrace + 1)
+      }
+
+      const criteria = JSON.parse(jsonText) as GeminiPlaylistCriteria
+
+      // Validar que tenga los campos mínimos
+      if (!criteria.playlistName || !criteria.criteria) {
+        throw new Error("Respuesta de Gemini no tiene el formato esperado")
+      }
+
+      // Establecer valores por defecto
+      if (!criteria.description) {
+        criteria.description = `Playlist personalizada: ${criteria.playlistName}`
+      }
+
+      // Usar el maxTracks calculado basado en el tiempo (20 min por defecto o el especificado)
+      criteria.criteria.maxTracks = finalMaxTracks
+
+      // Si identificamos una actividad con BPM, SIEMPRE forzar el bpmRange (CRUCIAL)
+      // Esto es OBLIGATORIO - no es opcional
+      if (activityBPM) {
+        criteria.criteria.bpmRange = [activityBPM.min, activityBPM.max]
+        console.log(`⚠️ BPM OBLIGATORIO para actividad "${identifiedActivity}": ${activityBPM.min}-${activityBPM.max} BPM`)
+      } else if (criteria.criteria.bpmRange) {
+        // Si Gemini sugirió un bpmRange pero no hay actividad, mantenerlo
+        console.log(`BPM sugerido por Gemini: ${criteria.criteria.bpmRange[0]}-${criteria.criteria.bpmRange[1]} BPM`)
+      }
+
+      // Éxito: retornar los criterios
+      return criteria
+    } catch (error) {
+      // Si hay un error con este modelo, intentar el siguiente
+      console.log(`Error con modelo ${model.name}, intentando siguiente modelo...`)
+      lastError = error instanceof Error ? error : new Error(String(error))
+      continue
     }
-
-    const data = await response.json()
-
-    // Extraer el texto de la respuesta
-    const responseText =
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      data.candidates?.[0]?.content?.parts?.[0]?.text ||
-      ""
-
-    if (!responseText) {
-      throw new Error("No se recibió respuesta de Gemini")
-    }
-
-    // Intentar parsear el JSON de la respuesta
-    // Gemini a veces envuelve el JSON en markdown, así que lo limpiamos
-    let jsonText = responseText.trim()
-    
-    // Remover markdown code blocks si existen
-    jsonText = jsonText.replace(/```json\n?/g, "").replace(/```\n?/g, "")
-    jsonText = jsonText.trim()
-
-    // Buscar el primer { y último } para extraer solo el JSON
-    const firstBrace = jsonText.indexOf("{")
-    const lastBrace = jsonText.lastIndexOf("}")
-
-    if (firstBrace !== -1 && lastBrace !== -1 && lastBrace > firstBrace) {
-      jsonText = jsonText.substring(firstBrace, lastBrace + 1)
-    }
-
-    const criteria = JSON.parse(jsonText) as GeminiPlaylistCriteria
-
-    // Validar que tenga los campos mínimos
-    if (!criteria.playlistName || !criteria.criteria) {
-      throw new Error("Respuesta de Gemini no tiene el formato esperado")
-    }
-
-    // Establecer valores por defecto
-    if (!criteria.description) {
-      criteria.description = `Playlist personalizada: ${criteria.playlistName}`
-    }
-
-    // Usar el maxTracks calculado basado en el tiempo (20 min por defecto o el especificado)
-    criteria.criteria.maxTracks = finalMaxTracks
-
-    // Si identificamos una actividad con BPM, SIEMPRE forzar el bpmRange (CRUCIAL)
-    // Esto es OBLIGATORIO - no es opcional
-    if (activityBPM) {
-      criteria.criteria.bpmRange = [activityBPM.min, activityBPM.max]
-      console.log(`⚠️ BPM OBLIGATORIO para actividad "${identifiedActivity}": ${activityBPM.min}-${activityBPM.max} BPM`)
-    } else if (criteria.criteria.bpmRange) {
-      // Si Gemini sugirió un bpmRange pero no hay actividad, mantenerlo
-      console.log(`BPM sugerido por Gemini: ${criteria.criteria.bpmRange[0]}-${criteria.criteria.bpmRange[1]} BPM`)
-    }
-
-    return criteria
-  } catch (error) {
-    console.error("Error llamando a Gemini:", error)
-    
-    // Si falla, devolver criterios por defecto basados en el prompt
-    // SIEMPRE incluir BPM si hay actividad identificada (CRUCIAL)
-    const fallbackCriteria: GeminiPlaylistCriteria = {
-      playlistName: userPrompt.length > 50 ? userPrompt.substring(0, 50) : userPrompt,
-      description: `Playlist: ${userPrompt}`,
-      criteria: {
-        genres: userData.topGenres.slice(0, 3),
-        energy: userData.musicPreferences.energy,
-        tempo: userData.musicPreferences.tempo,
-        mood: userData.musicPreferences.mood,
-        maxTracks: finalMaxTracks,
-        // BPM es OBLIGATORIO si hay actividad
-        ...(activityBPM ? { bpmRange: [activityBPM.min, activityBPM.max] } : {}),
-      },
-    }
-    
-    if (activityBPM) {
-      console.log(`FALLBACK: BPM OBLIGATORIO para actividad: ${identifiedActivity} = ${activityBPM.min}-${activityBPM.max} BPM`)
-    }
-
-    return fallbackCriteria
   }
+
+  // Si llegamos aquí, ningún modelo funcionó
+  console.error("Todos los modelos de Gemini fallaron:", lastError)
+  
+  // Si falla, devolver criterios por defecto basados en el prompt
+  // SIEMPRE incluir BPM si hay actividad identificada (CRUCIAL)
+  const fallbackCriteria: GeminiPlaylistCriteria = {
+    playlistName: userPrompt.length > 50 ? userPrompt.substring(0, 50) : userPrompt,
+    description: `Playlist: ${userPrompt}`,
+    criteria: {
+      genres: userData.topGenres.slice(0, 3),
+      energy: userData.musicPreferences.energy,
+      tempo: userData.musicPreferences.tempo,
+      mood: userData.musicPreferences.mood,
+      maxTracks: finalMaxTracks,
+      // BPM es OBLIGATORIO si hay actividad
+      ...(activityBPM ? { bpmRange: [activityBPM.min, activityBPM.max] } : {}),
+    },
+  }
+  
+  if (activityBPM) {
+    console.log(`FALLBACK: BPM OBLIGATORIO para actividad: ${identifiedActivity} = ${activityBPM.min}-${activityBPM.max} BPM`)
+  }
+
+  return fallbackCriteria
 }
 

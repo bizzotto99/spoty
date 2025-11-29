@@ -41,13 +41,17 @@ export async function refreshAccessToken(refreshToken: string): Promise<SpotifyT
 }
 
 /**
- * Hace una petición a la API de Spotify con manejo automático de tokens
+ * Hace una petición a la API de Spotify con manejo automático de tokens y rate limiting
  */
 export async function spotifyApiRequest(
   endpoint: string,
   accessToken: string,
-  options: RequestInit = {}
+  options: RequestInit = {},
+  retryCount: number = 0
 ): Promise<Response> {
+  const maxRetries = 3
+  const baseDelay = 1000 // 1 segundo base
+
   const response = await fetch(`https://api.spotify.com/v1${endpoint}`, {
     ...options,
     headers: {
@@ -56,6 +60,22 @@ export async function spotifyApiRequest(
       ...options.headers,
     },
   })
+
+  // Manejar rate limiting (429 Too Many Requests)
+  if (response.status === 429) {
+    const retryAfter = response.headers.get("Retry-After")
+    const waitTime = retryAfter 
+      ? parseInt(retryAfter, 10) * 1000 
+      : baseDelay * Math.pow(2, retryCount)
+    
+    if (retryCount < maxRetries) {
+      console.log(`Rate limit alcanzado. Esperando ${waitTime}ms antes de reintentar...`)
+      await new Promise(resolve => setTimeout(resolve, waitTime))
+      return spotifyApiRequest(endpoint, accessToken, options, retryCount + 1)
+    } else {
+      throw new Error("Rate limit excedido después de múltiples intentos")
+    }
+  }
 
   if (response.status === 401) {
     // Token expirado, habría que refrescar aquí
