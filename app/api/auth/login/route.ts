@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server"
+import { NextRequest, NextResponse } from "next/server"
 
 const SPOTIFY_CLIENT_ID = process.env.SPOTIFY_CLIENT_ID
 const SPOTIFY_REDIRECT_URI = process.env.SPOTIFY_REDIRECT_URI || "https://spoty-three.vercel.app/api/auth/callback"
@@ -13,13 +13,16 @@ const SPOTIFY_SCOPES = [
   "playlist-read-private",
 ].join(" ")
 
-export async function GET() {
+export async function GET(request: NextRequest) {
   if (!SPOTIFY_CLIENT_ID) {
     return NextResponse.json(
       { error: "SPOTIFY_CLIENT_ID no está configurado" },
       { status: 500 }
     )
   }
+
+  // Obtener la ruta de retorno desde el query parameter
+  const returnTo = request.nextUrl.searchParams.get("return_to") || "/"
 
   // Generar un state aleatorio para seguridad
   const state = Math.random().toString(36).substring(2, 15) + Math.random().toString(36).substring(2, 15)
@@ -40,6 +43,15 @@ export async function GET() {
   const isSecure = process.env.NODE_ENV === "production" || process.env.VERCEL === "1"
   
   response.cookies.set("spotify_auth_state", state, {
+    httpOnly: true,
+    secure: isSecure,
+    sameSite: "lax",
+    path: "/",
+    maxAge: 60 * 10, // 10 minutos
+  })
+
+  // Guardar la ruta de retorno en una cookie
+  response.cookies.set("spotify_return_to", returnTo, {
     httpOnly: true,
     secure: isSecure,
     sameSite: "lax",

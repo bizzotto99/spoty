@@ -15,15 +15,30 @@ import {
   Dialog,
   DialogContent,
   DialogDescription,
-  DialogFooter,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
 import { toast } from "sonner"
 
+const ACCESS_TOKEN_STORAGE_KEY = "records_access_token_validated"
+
 export default function RecordsPage() {
-  const [showConnectModal, setShowConnectModal] = useState(false)
+  const [accessToken, setAccessToken] = useState("")
+  const [showTokenModal, setShowTokenModal] = useState(false)
+  const [isValidatingToken, setIsValidatingToken] = useState(false)
+  const [tokenError, setTokenError] = useState("")
+  const [isAccessTokenValidated, setIsAccessTokenValidated] = useState(false)
+  
   const { isAuthenticated, user, isLoading, login, logout } = useSpotifyAuth()
+
+  // Verificar si el token ya fue validado al cargar
+  useEffect(() => {
+    const validated = localStorage.getItem(ACCESS_TOKEN_STORAGE_KEY) === "true"
+    setIsAccessTokenValidated(validated)
+    if (!validated) {
+      setShowTokenModal(true)
+    }
+  }, [])
 
   // Check if there's an error or success in the URL (from callback)
   useEffect(() => {
@@ -69,16 +84,70 @@ export default function RecordsPage() {
     }
   }, [])
 
-  // Verificar autenticación al cargar
+  // Verificar autenticación al cargar y redirigir automáticamente si no está autenticado
+  // Pero solo si el token de acceso ya fue validado
   useEffect(() => {
-    if (!isLoading && !isAuthenticated) {
-      setShowConnectModal(true)
+    if (!isLoading && !isAuthenticated && isAccessTokenValidated) {
+      // Redirigir directamente a la conexión de Spotify, pasando la ruta actual para volver aquí
+      login("/records")
     }
-  }, [isLoading, isAuthenticated])
+  }, [isLoading, isAuthenticated, isAccessTokenValidated, login])
 
-  const handleConnect = () => {
-    setShowConnectModal(false)
-    login()
+  const handleTokenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value
+    // Solo permitir números y máximo 3 caracteres
+    if (value === "" || (/^\d+$/.test(value) && value.length <= 3)) {
+      setAccessToken(value)
+      setTokenError("")
+      
+      // Si tiene exactamente 3 números, validar automáticamente
+      if (value.length === 3) {
+        handleValidateToken(value)
+      }
+    }
+  }
+
+  const handleValidateToken = async (tokenToValidate?: string) => {
+    const token = tokenToValidate || accessToken.trim()
+    
+    if (!token || token.length !== 3) {
+      return
+    }
+
+    setIsValidatingToken(true)
+    setTokenError("")
+
+    try {
+      const response = await fetch("/api/validate-access-token", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({ token }),
+      })
+
+      const data = await response.json()
+
+      if (data.valid) {
+        // Token válido, guardar en localStorage
+        localStorage.setItem(ACCESS_TOKEN_STORAGE_KEY, "true")
+        setIsAccessTokenValidated(true)
+        setShowTokenModal(false)
+        setAccessToken("")
+        toast.success("Access granted", {
+          description: "Redirecting to Spotify connection...",
+          duration: 2000,
+        })
+      } else {
+        setTokenError("Invalid token")
+        setAccessToken("")
+      }
+    } catch (error) {
+      setTokenError("Error validating token. Please try again.")
+      setAccessToken("")
+    } finally {
+      setIsValidatingToken(false)
+    }
   }
 
   return (
@@ -188,28 +257,11 @@ export default function RecordsPage() {
       </nav>
 
       <div className="flex-1 flex flex-col items-center justify-center relative z-10 py-8">
-        {!isAuthenticated ? (
+        {isLoading ? (
           <div className="text-center">
-            <div className="flex items-center justify-center gap-4 mb-4">
-              <h1 className="text-white text-5xl font-bold tracking-tight" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
-                Records
-              </h1>
-              <span 
-                className="text-5xl"
-                style={{ 
-                  color: "#ffffff",
-                  fontFamily: "var(--font-playfair), 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif",
-                  fontWeight: 300,
-                  letterSpacing: "0.15em",
-                  fontStyle: "italic",
-                }}
-              >
-                Records
-              </span>
-            </div>
-            <p className="text-gray-400 text-lg">Connect with Spotify to view your records</p>
+            <p className="text-gray-400 text-lg">Loading...</p>
           </div>
-        ) : (
+        ) : isAuthenticated ? (
           <div className="text-center">
             <div className="flex items-center justify-center gap-4 mb-4">
               <h1 className="text-white text-5xl font-bold tracking-tight" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
@@ -231,11 +283,15 @@ export default function RecordsPage() {
             <p className="text-gray-400 text-lg">Your playlist records will appear here</p>
             {/* Aquí irá el contenido de records cuando esté implementado */}
           </div>
+        ) : (
+          <div className="text-center">
+            <p className="text-gray-400 text-lg">Redirecting to Spotify...</p>
+          </div>
         )}
       </div>
 
-      {/* Modal de conexión */}
-      <Dialog open={showConnectModal} onOpenChange={setShowConnectModal}>
+      {/* Modal de validación de token de acceso */}
+      <Dialog open={showTokenModal} onOpenChange={() => {}}>
         <DialogContent
           className="sm:max-w-md rounded-2xl"
           showCloseButton={false}
@@ -247,48 +303,47 @@ export default function RecordsPage() {
         >
           <DialogHeader>
             <DialogTitle className="text-white text-xl font-semibold">
-              Connect with Spotify
+              Access Token Required
             </DialogTitle>
             <DialogDescription className="text-gray-400 pt-2">
-              You need to connect your Spotify account to access Records
+              Please enter your access token to continue to Records
             </DialogDescription>
           </DialogHeader>
 
-          <DialogFooter className="gap-3" style={{ gap: "1rem" }}>
-            <button
-              onClick={() => setShowConnectModal(false)}
-              className="px-6 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
-              style={{
-                backgroundColor: "transparent",
-                color: "#fff",
-                border: "1px solid #333",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#2a2a2a"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "transparent"
-              }}
-            >
-              Cancel
-            </button>
-            <button
-              onClick={handleConnect}
-              className="px-6 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
-              style={{
-                backgroundColor: "#1DB954",
-                color: "#000",
-              }}
-              onMouseEnter={(e) => {
-                e.currentTarget.style.backgroundColor = "#1ed760"
-              }}
-              onMouseLeave={(e) => {
-                e.currentTarget.style.backgroundColor = "#1DB954"
-              }}
-            >
-              Connect
-            </button>
-          </DialogFooter>
+          <div className="py-4">
+            <input
+              type="text"
+              inputMode="numeric"
+              pattern="[0-9]*"
+              maxLength={3}
+              value={accessToken}
+              onChange={handleTokenChange}
+              placeholder="123"
+              className="w-full px-4 py-3 rounded-lg bg-[#0a0a0a] border border-[#333] text-white placeholder-gray-500 outline-none focus:border-[#1DB954] transition-colors text-center text-2xl tracking-widest"
+              style={{ color: "#fff", fontFamily: "monospace", letterSpacing: "0.5em" }}
+              disabled={isValidatingToken}
+              autoFocus
+            />
+            {tokenError && (
+              <div className="mt-3">
+                <p className="text-red-400 text-sm text-center">{tokenError}</p>
+                {showContact && (
+                  <button
+                    onClick={handleContact}
+                    className="mt-2 flex items-center gap-2 text-sm text-[#1DB954] hover:text-[#1ed760] transition-colors"
+                  >
+                    <Mail size={16} />
+                    <span>Contact us to get access</span>
+                  </button>
+                )}
+              </div>
+            )}
+            {isValidatingToken && (
+              <div className="mt-3">
+                <p className="text-gray-400 text-sm text-center">Validating...</p>
+              </div>
+            )}
+          </div>
         </DialogContent>
       </Dialog>
     </main>

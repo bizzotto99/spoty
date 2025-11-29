@@ -121,7 +121,7 @@ export function useSpotifyAuth(): UseSpotifyAuthReturn {
     }
   }
 
-  const login = () => {
+  const login = (returnTo?: string) => {
     // En modo mock, activar mock mode (solo en desarrollo)
     const isDevelopment = typeof window !== "undefined" && 
       (window.location.hostname === "localhost" || 
@@ -137,7 +137,11 @@ export function useSpotifyAuth(): UseSpotifyAuthReturn {
       return
     }
     // Redirigir al endpoint de login que iniciará el flujo OAuth
-    window.location.href = "/api/auth/login"
+    // Si se proporciona returnTo, pasarlo como parámetro
+    const loginUrl = returnTo 
+      ? `/api/auth/login?return_to=${encodeURIComponent(returnTo)}`
+      : "/api/auth/login"
+    window.location.href = loginUrl
   }
 
   const logout = async () => {
