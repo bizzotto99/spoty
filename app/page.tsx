@@ -46,6 +46,7 @@ export default function PlaylistPrompt() {
   const [tracks, setTracks] = useState<Track[]>([])
   const [playlistUrl, setPlaylistUrl] = useState<string>("")
   const [playlistName, setPlaylistName] = useState("")
+  const [playlistDescription, setPlaylistDescription] = useState("")
   const [isEditingName, setIsEditingName] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState("Analyzing your request...")
   const [draggedTrack, setDraggedTrack] = useState<number | null>(null)
@@ -189,6 +190,7 @@ export default function PlaylistPrompt() {
       
       setTracks(result.tracks)
       setPlaylistName(result.playlistName)
+      setPlaylistDescription(result.description || "")
       
       // Paso 2: Preview
       setFlowState('preview')
@@ -217,7 +219,7 @@ export default function PlaylistPrompt() {
         credentials: "include",
         body: JSON.stringify({
           name: playlistName || "My Playlist",
-          description: "",
+          description: playlistDescription || "",
           tracks: tracks.map(track => ({
             uri: track.uri || `spotify:track:${track.id}`,
           })),
@@ -268,6 +270,7 @@ export default function PlaylistPrompt() {
     setEditPrompt("")
     setPlaylistUrl("")
     setPlaylistName("")
+    setPlaylistDescription("")
     setIsEditingName(false)
   }
 
@@ -288,6 +291,8 @@ export default function PlaylistPrompt() {
     try {
       const result = await generateTracks(editPrompt)
       setTracks(result.tracks)
+      setPlaylistName(result.playlistName)
+      setPlaylistDescription(result.description || "")
       setEditPrompt("")
       toast.success("Updated!", {
         description: "Your playlist is ready",
