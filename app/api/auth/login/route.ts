@@ -11,6 +11,7 @@ const SPOTIFY_SCOPES = [
   "playlist-modify-public",
   "playlist-modify-private",
   "playlist-read-private",
+  "ugc-image-upload", // Necesario para subir imágenes de playlists
 ].join(" ")
 
 export async function GET(request: NextRequest) {

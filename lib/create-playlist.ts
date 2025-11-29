@@ -85,7 +85,11 @@ export async function createPlaylistInSpotify(
       }
     }
 
-    // 3. Subir imagen de la playlist si se proporciona
+    // 3. Esperar un poco antes de subir la imagen (Spotify necesita tiempo para procesar la playlist)
+    console.log(`[createPlaylistInSpotify] ⏳ Esperando 2 segundos antes de subir imagen...`)
+    await new Promise(resolve => setTimeout(resolve, 2000)) // 2 segundos de delay
+
+    // 4. Subir imagen de la playlist si se proporciona
     if (options.imageUrl || options.imagePath) {
       try {
         let imageBuffer: Buffer

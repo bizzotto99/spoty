@@ -52,11 +52,6 @@ export async function spotifyApiRequest(
   const maxRetries = 5 // Aumentar reintentos para rate limiting
   const baseDelay = 1000 // 1 segundo base
 
-  // Si ya viene Content-Type en options.headers, usarlo; sino, usar application/json por defecto
-  const defaultContentType = options.headers && "Content-Type" in options.headers 
-    ? {} 
-    : { "Content-Type": "application/json" }
-
   // Log antes de hacer el request
   const method = options.method || 'GET'
   const fullUrl = `https://api.spotify.com/v1${endpoint}`
@@ -67,13 +62,22 @@ export async function spotifyApiRequest(
   console.log(`  Endpoint: ${endpoint}`)
   console.log(`  Full URL: ${fullUrl}`)
   
+  // Preparar headers: si ya viene Content-Type en options.headers, usarlo; sino, usar application/json por defecto
+  const existingHeaders = options.headers || {}
+  const hasContentType = existingHeaders instanceof Headers 
+    ? existingHeaders.has("Content-Type")
+    : "Content-Type" in existingHeaders
+  
+  const headers = new Headers(existingHeaders)
+  headers.set("Authorization", `Bearer ${accessToken}`)
+  
+  if (!hasContentType) {
+    headers.set("Content-Type", "application/json")
+  }
+  
   const response = await fetch(fullUrl, {
     ...options,
-    headers: {
-      Authorization: `Bearer ${accessToken}`,
-      ...defaultContentType,
-      ...options.headers,
-    },
+    headers,
   })
 
   // Log después de recibir respuesta
