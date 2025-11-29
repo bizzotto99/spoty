@@ -353,11 +353,15 @@ export async function searchDalePlayDataOptimized(
       }
     }
 
-    // 2. Buscar artistas y tracks EN PARALELO, compartiendo los álbumes validados
-    const [artists, tracks] = await Promise.all([
-      searchDalePlayArtistsOptimized(accessToken, artistsLimit, validatedAlbums),
-      searchDalePlayTracksOptimized(accessToken, tracksLimit, validatedAlbums),
-    ])
+    // 2. Buscar artistas y tracks SECUENCIALMENTE (no en paralelo) para evitar rate limiting
+    console.log(`[searchDalePlayDataOptimized] 🎯 Buscando artistas primero...`)
+    const artists = await searchDalePlayArtistsOptimized(accessToken, artistsLimit, validatedAlbums)
+    
+    console.log(`[searchDalePlayDataOptimized] ⏳ Esperando 5s antes de buscar tracks...`)
+    await new Promise(resolve => setTimeout(resolve, 5000))
+    
+    console.log(`[searchDalePlayDataOptimized] 🎵 Buscando tracks ahora...`)
+    const tracks = await searchDalePlayTracksOptimized(accessToken, tracksLimit, validatedAlbums)
 
     return { artists, tracks }
   } catch (error) {
