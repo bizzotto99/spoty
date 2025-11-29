@@ -478,31 +478,27 @@ export default function PlaylistPrompt() {
         {flowState === 'idle' && (
         <form onSubmit={handleSubmit} className="w-full max-w-2xl mx-auto px-4 flex flex-col items-center gap-4">
           {isAuthenticated ? (
-            <span 
-              className="text-5xl mb-8 text-center"
+            <h1 
+              className="text-5xl mb-8 text-center font-bold"
               style={{ 
                 color: "#ffffff",
-                fontFamily: "var(--font-playfair), 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif",
-                fontWeight: 400,
-                letterSpacing: "0.15em",
-                fontStyle: "italic",
+                fontFamily: "var(--font-instrument-serif), 'Instrument Serif', serif",
+                letterSpacing: "-0.03em",
               }}
             >
               Scale Your Playlist Creation for Your Label
-            </span>
+            </h1>
           ) : (
-            <span 
-              className="text-5xl mb-8 text-center"
+            <h1 
+              className="text-5xl mb-8 text-center font-bold"
               style={{ 
                 color: "#ffffff",
-                fontFamily: "var(--font-playfair), 'Playfair Display', 'Cormorant Garamond', 'Georgia', serif",
-                fontWeight: 400,
-                letterSpacing: "0.15em",
-                fontStyle: "italic",
+                fontFamily: "var(--font-instrument-serif), 'Instrument Serif', serif",
+                letterSpacing: "-0.03em",
               }}
             >
               smart playlisting in-house
-            </span>
+            </h1>
           )}
           
           <div
