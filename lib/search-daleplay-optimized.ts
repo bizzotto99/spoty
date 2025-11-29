@@ -16,7 +16,7 @@ import {
 import type { Artist, Track } from "./search-daleplay"
 
 const DALE_PLAY_LABEL = "Dale Play Records"
-const MAX_ALBUMS_TO_SEARCH = 8 // Reducido de 10 a 8
+const MAX_ALBUMS_TO_SEARCH = 5 // Reducido para evitar rate limiting (5 álbumes = ~30-50 tracks)
 
 interface ValidatedAlbum {
   id: string
@@ -54,15 +54,15 @@ async function searchAndValidateDalePlayAlbums(
       return []
     }
 
-    // 2. Validar álbumes y extraer información (hasta 8 requests, pero con delay)
+    // 2. Validar álbumes y extraer información (hasta 5 requests con delay de 1.5s entre cada uno)
     const validatedAlbums: ValidatedAlbum[] = []
     
     for (let i = 0; i < albums.length; i++) {
       const album = albums[i]
       
-      // Delay entre requests (500ms excepto la primera)
+      // Delay entre requests (1500ms excepto la primera) para evitar rate limiting
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 500))
+        await new Promise(resolve => setTimeout(resolve, 1500))
       }
 
       try {
@@ -165,7 +165,7 @@ export async function searchDalePlayArtistsOptimized(
     const artistIds = artists.map(a => a.id).slice(0, 50) // Spotify limita a 50
     
       try {
-        await new Promise(resolve => setTimeout(resolve, 500)) // Delay antes del request
+        await new Promise(resolve => setTimeout(resolve, 1500)) // Delay 1.5s antes del request para evitar rate limiting
         
         console.log(`[searchDalePlayArtistsOptimized] 🎤 Obteniendo información de ${artistIds.length} artistas...`)
         const artistsInfoRes = await spotifyApiRequest(
@@ -237,9 +237,9 @@ export async function searchDalePlayTracksOptimized(
     for (let i = 0; i < albums.length && tracks.length < limit; i++) {
       const album = albums[i]
 
-      // Delay entre requests (500ms excepto la primera)
+      // Delay entre requests (1500ms excepto la primera) para evitar rate limiting
       if (i > 0) {
-        await new Promise(resolve => setTimeout(resolve, 500))
+        await new Promise(resolve => setTimeout(resolve, 1500))
       }
 
       try {
@@ -293,7 +293,7 @@ export async function searchDalePlayTracksOptimized(
     const trackIds = tracks.map(t => t.id).slice(0, 50)
     
       try {
-        await new Promise(resolve => setTimeout(resolve, 500)) // Delay antes del request
+        await new Promise(resolve => setTimeout(resolve, 1500)) // Delay 1.5s antes del request para evitar rate limiting
         
         console.log(`[searchDalePlayTracksOptimized] 🎧 Obteniendo información completa de ${trackIds.length} tracks...`)
         const tracksInfoRes = await spotifyApiRequest(

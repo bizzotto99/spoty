@@ -1,35 +1,24 @@
 /**
- * Función para que OpenAI seleccione canciones específicas del label Dale Play Records
- * Devuelve una lista de canciones específicas (track name + artist name) para buscar en Spotify
+ * Función para que OpenAI seleccione canciones del catálogo de Dale Play Records
+ * OpenAI recibe una lista de tracks disponibles y selecciona los mejores según el prompt
  */
 
-// BPM filtering deshabilitado temporalmente - se probará después
-// import { getBPMForActivity, findMatchingActivities } from "./activity-matcher"
-import { extractDurationAndCalculateTracks } from "./openai"
-
-export interface SelectedTrack {
-  trackName: string
-  artistName: string
-  reason?: string // Por qué se seleccionó esta canción
-}
+import type { Track } from "./search-daleplay"
 
 export interface TrackSelectionResult {
   playlistName: string
   description: string
-  tracks: SelectedTrack[]
-}
-
-export interface LabelData {
-  artists: Array<{ name: string; genres: string[] }> // Puede estar vacío - solo para contexto adicional si está disponible
-  genres: string[] // Puede estar vacío - solo para contexto adicional si está disponible
+  selectedTrackIds: string[] // IDs de los tracks seleccionados
 }
 
 /**
- * Llama a OpenAI para que seleccione canciones específicas del label Dale Play Records
+ * Llama a OpenAI para que seleccione canciones de la lista disponible
+ * OpenAI recibe: prompt del usuario + lista de tracks disponibles del label
+ * Retorna: IDs de los tracks seleccionados
  */
-export async function selectTracksWithOpenAI(
+export async function selectTracksFromCatalog(
   userPrompt: string,
-  labelData: LabelData,
+  availableTracks: Track[],
   maxTracks: number
 ): Promise<TrackSelectionResult> {
   const OPENAI_API_KEY = process.env.OPENAI_API_KEY
@@ -37,13 +26,18 @@ export async function selectTracksWithOpenAI(
     throw new Error("OPENAI_API_KEY no está configurada")
   }
 
-  // BPM filtering deshabilitado temporalmente - se probará después
-  // let activityBPM: { min: number; max: number } | null = null
-  // let identifiedActivity: string | null = null
+  // Preparar lista de tracks para OpenAI (solo info relevante)
+  const tracksCatalog = availableTracks.map((track, index) => ({
+    id: index, // Usamos el índice como ID para que OpenAI seleccione
+    trackId: track.id, // ID real de Spotify
+    name: track.name,
+    artist: track.artist,
+    album: track.album,
+  }))
 
   const functionDefinition = {
     name: "selectPlaylistTracks",
-    description: "Selecciona canciones específicas del sello discográfico (record label) 'Dale Play Records' para crear una playlist personalizada. TODAS las canciones deben estar publicadas bajo este label. DEBES seleccionar canciones reales que existan en el catálogo de Dale Play Records en Spotify.",
+    description: "Selecciona canciones del catálogo de Dale Play Records para crear una playlist personalizada basada en el prompt del usuario.",
     parameters: {
       type: "object",
       properties: {
@@ -55,81 +49,53 @@ export async function selectTracksWithOpenAI(
           type: "string",
           description: "Descripción breve de la playlist (máximo 200 caracteres)"
         },
-        tracks: {
+        selectedTrackIds: {
           type: "array",
           items: {
-            type: "object",
-            properties: {
-              trackName: {
-                type: "string",
-                description: "Nombre EXACTO de la canción tal como aparece en Spotify"
-              },
-              artistName: {
-                type: "string",
-                description: "Nombre EXACTO del artista tal como aparece en Spotify. El artista DEBE pertenecer al sello discográfico 'Dale Play Records'."
-              },
-              reason: {
-                type: "string",
-                description: "Breve explicación de por qué se seleccionó esta canción"
-              }
-            },
-            required: ["trackName", "artistName"]
+            type: "number",
+            description: "ID numérico de la canción del catálogo"
           },
-          description: `Array de canciones específicas. DEBE tener exactamente ${maxTracks} canciones. Todas las canciones DEBEN estar publicadas bajo el sello discográfico "Dale Play Records" (verificado en los metadatos del label en Spotify).`,
+          description: `Array de IDs de canciones seleccionadas. DEBE tener EXACTAMENTE ${maxTracks} IDs. Selecciona las canciones que mejor se ajusten al prompt del usuario.`,
           minItems: maxTracks,
           maxItems: maxTracks
         }
       },
-      required: ["playlistName", "description", "tracks"]
+      required: ["playlistName", "description", "selectedTrackIds"]
     }
   }
 
-  // Construir información del label (si está disponible, sino solo el nombre)
-  const labelInfo = labelData.artists.length > 0 
-    ? `ARTISTAS DISPONIBLES EN DALE PLAY RECORDS:
-${labelData.artists.map(a => `- ${a.name}${a.genres.length > 0 ? ` (géneros: ${a.genres.join(", ")})` : ''}`).join("\n")}
-
-GÉNEROS DISPONIBLES EN EL LABEL:
-${labelData.genres.length > 0 ? labelData.genres.join(", ") : "Variados"}`
-    : `"Dale Play Records" es un SELLO DISCROGRÁFICO (record label). Todas las canciones que selecciones DEBEN estar publicadas bajo este sello discográfico y aparecer en su catálogo en Spotify.`
-
   const systemMessage = `Eres un experto en música y creación de playlists personalizadas para el sello discográfico "Dale Play Records".
 
-CONTEXTO IMPORTANTE:
-- "Dale Play Records" es un SELLO DISCROGRÁFICO (record label)
-- TODAS las canciones que selecciones DEBEN estar publicadas bajo este sello discográfico
-- El catálogo de "Dale Play Records" en Spotify contiene canciones de varios artistas que pertenecen a este label
+INSTRUCCIONES:
+1. Tienes acceso a un catálogo de ${tracksCatalog.length} canciones del sello "Dale Play Records"
+2. Debes seleccionar EXACTAMENTE ${maxTracks} canciones que mejor se ajusten al prompt del usuario
+3. Considera el mood, género, artistas mencionados, y duración solicitada
+4. Varía los artistas cuando sea posible (no más de 2-3 canciones del mismo artista seguidas)
+5. El orden debe ser lógico para la experiencia de escucha
+6. Retorna los IDs numéricos de las canciones seleccionadas (del campo "id" del catálogo)
 
-INSTRUCCIONES CRÍTICAS:
-1. Debes seleccionar EXACTAMENTE ${maxTracks} canciones ESPECÍFICAS del sello discográfico "Dale Play Records"
-2. Las canciones DEBEN existir realmente en el catálogo de "Dale Play Records" en Spotify (verificadas por el label en los metadatos del álbum)
-3. Los nombres de las canciones y artistas DEBEN ser EXACTOS (tal como aparecen en Spotify)
-4. ${labelData.artists.length > 0 ? 'Si hay artistas listados, úsalos como referencia. Todos los tracks deben ser de artistas que pertenezcan al label.' : 'Todos los tracks deben ser de artistas que pertenezcan al sello discográfico "Dale Play Records".'}
-5. El prompt del usuario contiene:
-   - DURACIÓN: Define cuántas canciones necesitas (${maxTracks} canciones)
-   - SUGERENCIAS: Puede mencionar artistas, géneros, mood, etc. - PERO todos deben estar dentro del label "Dale Play Records"
-6. Si el usuario sugiere un artista o género, SOLO selecciona canciones de ese artista/género SI están en el label "Dale Play Records"
-7. Varía los artistas (no más de 2-3 canciones del mismo artista)
-8. El orden de las canciones debe ser lógico para la playlist
-
-${labelInfo}
-
-IMPORTANTE: 
-- Si no estás seguro de que una canción exista exactamente con ese nombre en el label "Dale Play Records", NO la incluyas
-- Solo selecciona canciones que estés seguro que existen y están publicadas bajo el sello discográfico "Dale Play Records"`
+IMPORTANTE:
+- Solo puedes seleccionar canciones del catálogo proporcionado
+- No inventes nombres de canciones o artistas
+- Usa SOLO los IDs del catálogo`
 
   const userMessage = `PROMPT DEL USUARIO: "${userPrompt}"
 
-INSTRUCCIONES:
-- Selecciona EXACTAMENTE ${maxTracks} canciones específicas del sello discográfico "Dale Play Records"
-- El prompt contiene la duración (${maxTracks} canciones) y posibles sugerencias de artista, género, mood, etc.
-- TODAS las canciones deben ser del label "Dale Play Records" (verificado en Spotify)
-- Si el prompt menciona artistas o géneros, respétalos SOLO si están disponibles en el label
-- Los nombres de canciones y artistas deben ser EXACTOS como aparecen en Spotify
+CATÁLOGO DISPONIBLE (${tracksCatalog.length} canciones de Dale Play Records):
+${JSON.stringify(tracksCatalog, null, 2)}
 
-Usa la función selectPlaylistTracks para seleccionar las ${maxTracks} canciones.`
+TAREA:
+Selecciona EXACTAMENTE ${maxTracks} canciones del catálogo que mejor se ajusten al prompt.
+- Si el prompt menciona duración, respétala (${maxTracks} canciones ≈ ${Math.round(maxTracks * 3.5)} minutos)
+- Si menciona artistas, priorízalos (pero solo si están en el catálogo)
+- Si menciona géneros o mood, selecciona canciones apropiadas
+- Crea una playlist coherente y fluida
+
+Usa la función selectPlaylistTracks para devolver los IDs de las ${maxTracks} canciones seleccionadas.`
 
   try {
+    console.log(`🤖 OpenAI seleccionando ${maxTracks} canciones de ${tracksCatalog.length} disponibles...`)
+    
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -166,49 +132,31 @@ Usa la función selectPlaylistTracks para seleccionar las ${maxTracks} canciones
       throw new Error("OpenAI no devolvió la función esperada")
     }
 
-    const result = JSON.parse(functionCall.arguments) as TrackSelectionResult
+    const result = JSON.parse(functionCall.arguments)
 
-    if (!result.playlistName || !result.tracks || result.tracks.length !== maxTracks) {
-      throw new Error(`OpenAI devolvió ${result.tracks?.length || 0} canciones, se esperaban ${maxTracks}`)
+    if (!result.playlistName || !result.selectedTrackIds || !Array.isArray(result.selectedTrackIds)) {
+      throw new Error("OpenAI no devolvió el formato esperado")
     }
 
-    // Validar que todos los tracks tengan trackName y artistName válidos (strings)
-    const validTracks = result.tracks.filter((t: any) => {
-      const isValid = t && 
-        t.trackName && 
-        typeof t.trackName === 'string' && 
-        t.trackName.trim().length > 0 &&
-        t.artistName && 
-        typeof t.artistName === 'string' && 
-        t.artistName.trim().length > 0
-      
-      if (!isValid) {
-        console.warn(`[selectTracksWithOpenAI] ⚠️ Track inválido recibido de OpenAI:`, t)
-      }
-      return isValid
-    })
-
-    if (validTracks.length !== result.tracks.length) {
-      console.warn(`[selectTracksWithOpenAI] OpenAI devolvió ${result.tracks.length} tracks, pero solo ${validTracks.length} son válidos`)
+    if (result.selectedTrackIds.length !== maxTracks) {
+      console.warn(`⚠️ OpenAI devolvió ${result.selectedTrackIds.length} canciones, se esperaban ${maxTracks}`)
     }
 
-    // Asegurar que los valores sean strings y estén limpios
-    result.tracks = validTracks.map((t: any) => ({
-      trackName: String(t.trackName).trim(),
-      artistName: String(t.artistName).trim(),
-      reason: t.reason ? String(t.reason).trim() : undefined
-    }))
+    // Convertir los índices a IDs reales de Spotify
+    const realTrackIds = result.selectedTrackIds
+      .filter((index: number) => index >= 0 && index < tracksCatalog.length)
+      .map((index: number) => tracksCatalog[index].trackId)
 
-    if (result.tracks.length === 0) {
-      throw new Error(`OpenAI no devolvió tracks válidos. Todos los tracks tenían datos inválidos.`)
+    console.log(`✅ OpenAI seleccionó ${realTrackIds.length} canciones para la playlist`)
+
+    return {
+      playlistName: result.playlistName,
+      description: result.description || "Playlist generada con IA",
+      selectedTrackIds: realTrackIds
     }
-
-    console.log(`✅ OpenAI seleccionó ${result.tracks.length} canciones específicas para la playlist`)
-    return result
 
   } catch (error) {
     console.error("Error llamando a OpenAI API para selección de tracks:", error)
     throw error
   }
 }
-
