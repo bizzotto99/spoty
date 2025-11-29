@@ -52,9 +52,9 @@ export async function searchDalePlayTracks(
       if (tracks.length >= limit) break
       
       try {
-        // Buscar álbumes
+        // Buscar álbumes (reducir límite a 20 para hacer menos requests)
         const albumSearchRes = await spotifyApiRequest(
-          `/search?q=${encodeURIComponent(query)}&type=album&limit=50&market=US`,
+          `/search?q=${encodeURIComponent(query)}&type=album&limit=20&market=US`,
           accessToken
         )
         const albumSearchData = await albumSearchRes.json()
@@ -66,8 +66,8 @@ export async function searchDalePlayTracks(
             if (seenAlbumIds.has(album.id)) continue
             
             try {
-              // Agregar delay pequeño entre requests para evitar rate limiting
-              await new Promise(resolve => setTimeout(resolve, 150))
+              // Agregar delay entre requests para evitar rate limiting (aumentado de 150ms a 300ms)
+              await new Promise(resolve => setTimeout(resolve, 300))
               
               // Obtener detalles completos del álbum para ver el label
               const albumDetailsRes = await spotifyApiRequest(
@@ -100,8 +100,8 @@ export async function searchDalePlayTracks(
               seenAlbumIds.add(album.id)
               
               // Obtener los tracks del álbum
-              // Agregar delay pequeño entre requests para evitar rate limiting
-              await new Promise(resolve => setTimeout(resolve, 150))
+              // Agregar delay entre requests para evitar rate limiting (aumentado de 150ms a 300ms)
+              await new Promise(resolve => setTimeout(resolve, 300))
               
               const albumTracksRes = await spotifyApiRequest(
                 `/albums/${album.id}/tracks?limit=50&market=US`,
@@ -217,8 +217,8 @@ export async function searchDalePlayArtists(accessToken: string, limit: number =
             if (artists.length >= limit) break
             
             try {
-              // Agregar delay pequeño entre requests para evitar rate limiting
-              await new Promise(resolve => setTimeout(resolve, 150))
+              // Agregar delay entre requests para evitar rate limiting (aumentado de 150ms a 300ms)
+              await new Promise(resolve => setTimeout(resolve, 300))
               
               // Obtener detalles completos del álbum para ver el label
               const albumDetailsRes = await spotifyApiRequest(

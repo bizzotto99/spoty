@@ -68,8 +68,9 @@ export async function POST(request: NextRequest) {
 
     // 3. Buscar artistas y tracks del label "Dale Play Records"
     // Ambos buscan por el label real en Spotify, no por texto en nombres
-    const dalePlayArtists = await searchDalePlayArtists(accessToken, 100)
-    const allDalePlayTracks = await searchDalePlayTracks(accessToken, 200) // Busca directamente por label
+    // Reducir límites para evitar demasiadas requests a Spotify
+    const dalePlayArtists = await searchDalePlayArtists(accessToken, 50) // Reducido de 100 a 50
+    const allDalePlayTracks = await searchDalePlayTracks(accessToken, 100) // Reducido de 200 a 100
 
     // Extraer géneros de los artistas de Dale Play
     const dalePlayGenres: string[] = []
