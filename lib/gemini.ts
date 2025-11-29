@@ -240,7 +240,8 @@ EJEMPLO DE RESPUESTA:
 
   let lastError: Error | null = null
 
-  for (const model of modelsToTry) {
+  try {
+    for (const model of modelsToTry) {
     try {
       const url = `https://generativelanguage.googleapis.com/${model.version}/models/${model.name}:generateContent?key=${GEMINI_API_KEY}`
       
@@ -363,12 +364,12 @@ EJEMPLO DE RESPUESTA:
     }
   }
 
-  // Si llegamos aquí, todos los modelos fallaron
-  throw new Error(
-    `Todos los modelos de Gemini fallaron. Último error: ${lastError?.message || "Desconocido"}\n` +
-    `Modelos intentados: ${modelsToTry.map(m => `${m.name} (${m.version})`).join(", ")}`
-  )
-} catch (error) {
+    // Si llegamos aquí, todos los modelos fallaron
+    throw new Error(
+      `Todos los modelos de Gemini fallaron. Último error: ${lastError?.message || "Desconocido"}\n` +
+      `Modelos intentados: ${modelsToTry.map(m => `${m.name} (${m.version})`).join(", ")}`
+    )
+  } catch (error) {
   console.error("Error llamando a Gemini:", error)
     
     // Si falla, devolver criterios por defecto basados en el prompt
