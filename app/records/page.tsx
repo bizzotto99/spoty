@@ -307,6 +307,7 @@ export default function RecordsPage() {
                   "A playlist for running for about 45 minutes, with world cup songs"
                 </p>
               </div>
+              </div>
             </div>
           </div>
         )}
