@@ -36,36 +36,36 @@ export default function RecordsPage() {
     if (error) {
       console.error("Authentication error:", error)
       
-      let errorMessage = "Connection failed"
-      let errorDescription = "Please try connecting again"
+      let errorMessage = "Oops! Connection failed"
+      let errorDescription = "Let's try again"
       
       switch (error) {
         case "user_fetch_failed":
-          errorMessage = "Could not fetch user information"
-          errorDescription = "There was a problem retrieving your Spotify account. Please try again."
+          errorMessage = "Couldn't get your info"
+          errorDescription = "Try connecting again"
           break
         case "token_exchange_failed":
-          errorMessage = "Authentication failed"
-          errorDescription = "Could not complete authentication. Please try again."
+          errorMessage = "Connection issue"
+          errorDescription = "Give it another shot"
           break
         case "invalid_state":
-          errorMessage = "Security check failed"
-          errorDescription = "Please try connecting again."
+          errorMessage = "Security check"
+          errorDescription = "Please reconnect"
           break
         default:
-          errorMessage = "Connection failed"
-          errorDescription = `Error: ${error}. Please try again.`
+          errorMessage = "Something went wrong"
+          errorDescription = "Try again in a moment"
       }
       
       toast.error(errorMessage, {
         description: errorDescription,
-        duration: 5000,
+        duration: 4000,
       })
       window.history.replaceState({}, "", "/records")
     } else if (connected === "true") {
       window.history.replaceState({}, "", "/records")
-      toast.success("Connected!", {
-        description: "Your Spotify account is now connected",
+      toast.success("All set!", {
+        description: "You're connected to Spotify",
         duration: 2000,
       })
     }
@@ -109,7 +109,7 @@ export default function RecordsPage() {
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <button
-                  className="flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium hover:opacity-90"
+                  className="flex items-center gap-2 px-4 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium hover:opacity-90 min-w-[180px] justify-between"
                   style={{
                     backgroundColor: "#000",
                     color: "#1DB954",
@@ -124,25 +124,30 @@ export default function RecordsPage() {
                     e.currentTarget.style.transform = "scale(1)"
                   }}
                 >
-                  {/* User avatar */}
-                  {user.images && user.images[0] ? (
-                    <img
-                      src={user.images[0].url}
-                      alt={user.display_name || "User"}
-                      className="w-7 h-7 rounded-full"
-                    />
-                  ) : (
-                    <div
-                      className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
-                      style={{ backgroundColor: "#1DB954", color: "#000" }}
-                    >
-                      {user.display_name?.charAt(0).toUpperCase() || "U"}
-                    </div>
-                  )}
-                  {/* Greeting and name */}
-                  <span className="text-sm font-medium" style={{ color: "#1DB954" }}>
-                    Hello, {user.display_name?.split(" ")[0] || user.email?.split("@")[0] || "User"}
-                  </span>
+                  <div className="flex items-center gap-2">
+                    {/* User avatar */}
+                    {user.images && user.images[0] ? (
+                      <img
+                        src={user.images[0].url}
+                        alt={user.display_name || "User"}
+                        className="w-7 h-7 rounded-full"
+                      />
+                    ) : (
+                      <div
+                        className="w-7 h-7 rounded-full flex items-center justify-center text-xs font-semibold"
+                        style={{ backgroundColor: "#1DB954", color: "#000" }}
+                      >
+                        {user.display_name?.charAt(0).toUpperCase() || "U"}
+                      </div>
+                    )}
+                    {/* Greeting and name */}
+                    <span className="text-sm font-medium truncate max-w-[60px]" style={{ color: "#1DB954" }}>
+                      Hi, {(() => {
+                        const name = user.display_name?.split(" ")[0] || user.email?.split("@")[0] || "User"
+                        return name.length > 4 ? name.substring(0, 4) + "..." : name
+                      })()}
+                    </span>
+                  </div>
                   <ChevronDown size={16} style={{ color: "#1DB954" }} />
                 </button>
               </DropdownMenuTrigger>
@@ -154,21 +159,12 @@ export default function RecordsPage() {
                   border: "1px solid #333",
                 }}
               >
-                {/* Plaquita con logo Dale Play */}
-                <div className="px-3 py-2 border-b border-[#333]">
-                  <img 
-                    src="/daleplay.png" 
-                    alt="Dale Play Records" 
-                    className="w-full h-auto"
-                  />
-                </div>
-                
                 <DropdownMenuItem
                   className="cursor-pointer focus:bg-[#1DB954] focus:text-black"
                   style={{ color: "#fff" }}
                 >
                   <Music className="mr-2 h-4 w-4" />
-                  <span>My Playlists</span>
+                  <span className="font-normal">My Playlists</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem
                   onClick={logout}
@@ -178,6 +174,18 @@ export default function RecordsPage() {
                   <LogOut className="mr-2 h-4 w-4" />
                   <span>Log out</span>
                 </DropdownMenuItem>
+                
+                {/* Plaquita Dale Play */}
+                <div className="pl-2 pr-3 py-2 flex items-center gap-1 cursor-default border-t border-[#333]" style={{ backgroundColor: "#1a1a1a" }}>
+                  <img 
+                    src="/dp.png" 
+                    alt="Dale Play" 
+                    className="h-4 w-auto opacity-80"
+                  />
+                  <p className="font-semibold text-xs opacity-50" style={{ fontFamily: "system-ui, -apple-system, sans-serif", color: "#fff" }}>
+                    Dale Play
+                  </p>
+                </div>
               </DropdownMenuContent>
             </DropdownMenu>
           ) : (
@@ -230,7 +238,7 @@ export default function RecordsPage() {
           ) : !isAuthenticated ? (
             <div className="text-center">
             <div className="flex items-center justify-center gap-4 mb-4">
-              <h1 className="text-white text-5xl font-bold" style={{ fontFamily: "var(--font-instrument-serif), 'Instrument Serif', serif", letterSpacing: "-0.03em" }}>
+              <h1 className="text-white text-5xl font-bold" style={{ fontFamily: "var(--font-instrument-serif), 'Instrument Serif', serif", letterSpacing: "0.02em" }}>
                 Records
               </h1>
               <span 
@@ -263,7 +271,7 @@ export default function RecordsPage() {
             {/* Título dividido en dos renglones */}
             <div className="text-center mb-8">
               <div className="flex items-center justify-center gap-4 mb-4 flex-wrap">
-                <h1 className="text-white text-5xl font-bold" style={{ fontFamily: "var(--font-instrument-serif), 'Instrument Serif', serif", letterSpacing: "-0.03em" }}>
+                <h1 className="text-white text-5xl font-bold" style={{ fontFamily: "var(--font-instrument-serif), 'Instrument Serif', serif", letterSpacing: "0.02em" }}>
                   Scale Your Playlist Creation
                 </h1>
                 <span 
@@ -327,7 +335,7 @@ export default function RecordsPage() {
                 <p className="text-gray-400 text-sm">Tips for better results</p>
               </div>
               
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                 <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(29, 185, 84, 0.1)" }}>
@@ -337,24 +345,38 @@ export default function RecordsPage() {
                     </div>
                     <p className="text-white text-sm font-medium">Activity <span className="text-red-400">*</span></p>
                   </div>
-                  <p className="text-gray-400 text-xs">running, studying, working, relaxing...</p>
+                  <p className="text-gray-400 text-xs">running, studying, working, gym, relaxing...</p>
                 </div>
                 
                 <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
                   <div className="flex items-center gap-2 mb-2">
                     <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(29, 185, 84, 0.1)" }}>
-                      <div className="w-4 h-4 border-2 rounded" style={{ borderColor: "#1DB954" }} />
+                      <svg className="w-4 h-4" style={{ color: "#1DB954" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6" />
+                      </svg>
                     </div>
-                    <p className="text-white text-sm font-medium">Duration <span className="text-red-400">*</span></p>
+                    <p className="text-white text-sm font-medium">Context</p>
                   </div>
-                  <p className="text-gray-400 text-xs">45 minutes, 1 hour, 2 hours...</p>
+                  <p className="text-gray-400 text-xs">morning commute, party, focus, workout...</p>
+                </div>
+                
+                <div className="p-3 rounded-xl" style={{ backgroundColor: "#0a0a0a", border: "1px solid #1a1a1a" }}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center" style={{ backgroundColor: "rgba(29, 185, 84, 0.1)" }}>
+                      <svg className="w-4 h-4" style={{ color: "#1DB954" }} fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+                      </svg>
+                    </div>
+                    <p className="text-white text-sm font-medium">Time <span className="text-red-400">*</span></p>
+                  </div>
+                  <p className="text-gray-400 text-xs">30 minutes, 1 hour, 2 hours...</p>
                 </div>
               </div>
               
               <div className="mt-3 p-3 rounded-xl" style={{ backgroundColor: "rgba(29, 185, 84, 0.05)", border: "1px solid rgba(29, 185, 84, 0.2)" }}>
                 <p className="text-gray-400 text-xs mb-1.5">💡 Example:</p>
                 <p className="text-white text-sm italic" style={{ color: "#1DB954" }}>
-                  "A playlist for running 45 minutes with high energy tracks"
+                  "A playlist for running during morning commute, 30 minutes, high energy"
                 </p>
               </div>
             </div>
