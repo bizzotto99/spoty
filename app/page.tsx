@@ -3,7 +3,7 @@
 import type React from "react"
 
 import { useState, useEffect } from "react"
-import { Send, LogOut, ChevronDown, Music, Loader2, CheckCircle2, ExternalLink, RefreshCw, Edit2, Save, HelpCircle, ListMusic, ArrowLeft } from "lucide-react"
+import { Send, LogOut, ChevronDown, Music, Loader2, CheckCircle2, ExternalLink, RefreshCw, Edit2, Save, HelpCircle, ListMusic, ArrowLeft, X, GripVertical, Trash2 } from "lucide-react"
 import { useRouter } from "next/navigation"
 import { ParticlesBackground } from "@/components/particles-background"
 import { useSpotifyAuth } from "@/hooks/use-spotify-auth"
@@ -39,13 +39,16 @@ type FlowState = 'idle' | 'loading' | 'preview' | 'creating' | 'success'
 
 export default function PlaylistPrompt() {
   const [prompt, setPrompt] = useState("")
+  const [editPrompt, setEditPrompt] = useState("")
   const [showConnectModal, setShowConnectModal] = useState(false)
+  const [showExitModal, setShowExitModal] = useState(false)
   const [flowState, setFlowState] = useState<FlowState>('idle')
   const [tracks, setTracks] = useState<Track[]>([])
   const [playlistUrl, setPlaylistUrl] = useState<string>("")
   const [playlistName, setPlaylistName] = useState("")
   const [isEditingName, setIsEditingName] = useState(false)
   const [loadingMessage, setLoadingMessage] = useState("Analyzing your request...")
+  const [draggedTrack, setDraggedTrack] = useState<number | null>(null)
   const { isAuthenticated, user, isLoading, login, logout } = useSpotifyAuth()
   const router = useRouter()
 
@@ -262,9 +265,86 @@ export default function PlaylistPrompt() {
     setFlowState('idle')
     setTracks([])
     setPrompt("")
+    setEditPrompt("")
     setPlaylistUrl("")
     setPlaylistName("")
     setIsEditingName(false)
+  }
+
+  // Editar playlist con IA
+  const handleEditWithAI = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!editPrompt.trim()) {
+      toast.error("Please enter a prompt", {
+        description: "Describe how you want to modify the playlist",
+        duration: 3000,
+      })
+      return
+    }
+
+    setLoadingMessage("Editing playlist with AI...")
+    
+    try {
+      const result = await generateTracks(editPrompt)
+      setTracks(result.tracks)
+      setEditPrompt("")
+      toast.success("Playlist updated!", {
+        description: "Your playlist has been modified",
+        duration: 2000,
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Please try again"
+      toast.error("Error editing playlist", {
+        description: errorMessage,
+        duration: 5000,
+      })
+    }
+  }
+
+  // Eliminar track
+  const handleDeleteTrack = (trackId: string) => {
+    setTracks(tracks.filter(track => track.id !== trackId))
+    toast.success("Track removed", {
+      description: "The track has been removed from the playlist",
+      duration: 2000,
+    })
+  }
+
+  // Drag and drop handlers
+  const handleDragStart = (index: number) => {
+    setDraggedTrack(index)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+  }
+
+  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+    e.preventDefault()
+    if (draggedTrack === null) return
+
+    const newTracks = [...tracks]
+    const draggedItem = newTracks[draggedTrack]
+    newTracks.splice(draggedTrack, 1)
+    newTracks.splice(dropIndex, 0, draggedItem)
+    
+    setTracks(newTracks)
+    setDraggedTrack(null)
+  }
+
+  // Manejar salida con confirmación
+  const handleBackClick = () => {
+    setShowExitModal(true)
+  }
+
+  const handleExitConfirm = (action: 'save' | 'discard') => {
+    setShowExitModal(false)
+    if (action === 'save') {
+      handleCreatePlaylist()
+    } else {
+      handleReset()
+    }
   }
 
   const handleSaveName = () => {
@@ -332,7 +412,7 @@ export default function PlaylistPrompt() {
                       style={{ backgroundColor: "#1DB954", color: "#000" }}
                     >
                       {user.display_name?.charAt(0).toUpperCase() || "U"}
-                    </div>
+          </div>
                   )}
                   {/* Greeting and name */}
                   <span className="text-sm font-medium" style={{ color: "#1DB954" }}>
@@ -370,25 +450,25 @@ export default function PlaylistPrompt() {
           ) : (
             <div className="flex items-center gap-4">
               {/* Connect button */}
-              <button
+          <button
                 onClick={login}
-                className="px-5 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
-                style={{
-                  backgroundColor: "#000",
-                  color: "#1DB954",
-                  border: "1px solid transparent",
-                }}
-                onMouseEnter={(e) => {
-                  e.currentTarget.style.boxShadow = "0 0 12px rgba(29, 185, 84, 0.3)"
-                  e.currentTarget.style.transform = "scale(1.02)"
-                }}
-                onMouseLeave={(e) => {
-                  e.currentTarget.style.boxShadow = "none"
-                  e.currentTarget.style.transform = "scale(1)"
-                }}
-              >
+            className="px-5 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
+            style={{
+              backgroundColor: "#000",
+              color: "#1DB954",
+              border: "1px solid transparent",
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.boxShadow = "0 0 12px rgba(29, 185, 84, 0.3)"
+              e.currentTarget.style.transform = "scale(1.02)"
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.boxShadow = "none"
+              e.currentTarget.style.transform = "scale(1)"
+            }}
+          >
                 Connect with Spotify
-              </button>
+          </button>
             </div>
           )}
         </div>
@@ -512,6 +592,15 @@ export default function PlaylistPrompt() {
 
         {flowState === 'preview' && (
           <div className="w-full max-w-4xl mx-auto px-4 flex flex-col gap-6">
+            {/* Back Button */}
+            <button
+              onClick={handleBackClick}
+              className="flex items-center gap-2 text-gray-400 hover:text-white transition-colors self-start mb-2"
+            >
+              <ArrowLeft size={20} />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+
             {/* Card de Playlist */}
             <div className="flex flex-col sm:flex-row gap-6 items-start sm:items-center">
               {/* Cuadrado de playlist (como Spotify) */}
@@ -630,6 +719,44 @@ export default function PlaylistPrompt() {
               </div>
             </div>
 
+            {/* Input de edición con IA */}
+            <div className="mt-4">
+              <form onSubmit={handleEditWithAI} className="w-full flex flex-col gap-4">
+                <div
+                  className="flex items-center gap-0 rounded-full transition-all duration-300 w-full"
+                  style={{ backgroundColor: "#1a1a1a" }}
+                >
+                  <input
+                    type="text"
+                    value={editPrompt}
+                    onChange={(e) => setEditPrompt(e.target.value)}
+                    placeholder="Edit playlist with AI... (e.g., 'add more energetic songs', 'remove slow songs')"
+                    className="flex-1 px-6 py-4 bg-transparent text-white placeholder-gray-500 outline-none font-sans text-base"
+                    style={{ color: "#ffffff" }}
+                  />
+                  <button
+                    type="submit"
+                    className="mr-3 p-2 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center"
+                    style={{
+                      backgroundColor: "#1DB954",
+                      color: "#000",
+                    }}
+                    onMouseEnter={(e) => {
+                      e.currentTarget.style.boxShadow = "0 0 16px rgba(29, 185, 84, 0.4)"
+                      e.currentTarget.style.backgroundColor = "#1ed760"
+                    }}
+                    onMouseLeave={(e) => {
+                      e.currentTarget.style.boxShadow = "none"
+                      e.currentTarget.style.backgroundColor = "#1DB954"
+                    }}
+                    aria-label="Edit with AI"
+                  >
+                    <Send size={20} strokeWidth={2.5} />
+                  </button>
+                </div>
+              </form>
+            </div>
+
             {/* Lista de canciones */}
             <div className="mt-4">
               <h3 className="text-white text-lg font-medium mb-4" style={{ fontFamily: "system-ui, sans-serif" }}>
@@ -639,9 +766,16 @@ export default function PlaylistPrompt() {
                 {tracks.map((track, index) => (
                   <div
                     key={track.id}
-                    className="flex items-center gap-4 p-3 rounded-lg transition-all duration-300 hover:bg-[#1a1a1a]"
+                    draggable
+                    onDragStart={() => handleDragStart(index)}
+                    onDragOver={handleDragOver}
+                    onDrop={(e) => handleDrop(e, index)}
+                    className="flex items-center gap-4 p-3 rounded-lg transition-all duration-300 hover:bg-[#1a1a1a] cursor-move group"
                     style={{ backgroundColor: "#0a0a0a" }}
                   >
+                    <GripVertical 
+                      className="w-5 h-5 text-gray-600 opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing"
+                    />
                     <span className="text-gray-500 text-sm w-6 text-right">{index + 1}</span>
                     <img
                       src={track.image}
@@ -673,6 +807,14 @@ export default function PlaylistPrompt() {
                     <div className="text-gray-500 text-xs">
                       {Math.floor(track.duration_ms / 60000)}:{(Math.floor((track.duration_ms % 60000) / 1000)).toString().padStart(2, '0')}
                     </div>
+                    <button
+                      onClick={() => handleDeleteTrack(track.id)}
+                      className="p-2 rounded-lg transition-all duration-300 opacity-0 group-hover:opacity-100 hover:bg-red-500/20"
+                      style={{ color: "#ef4444" }}
+                      aria-label="Delete track"
+                    >
+                      <Trash2 size={16} />
+                    </button>
                   </div>
                 ))}
               </div>
@@ -803,6 +945,83 @@ export default function PlaylistPrompt() {
               }}
             >
               Connect Spotify
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de confirmación al salir */}
+      <Dialog open={showExitModal} onOpenChange={setShowExitModal}>
+        <DialogContent
+          className="sm:max-w-md rounded-2xl"
+          showCloseButton={false}
+          style={{
+            backgroundColor: "#1a1a1a",
+            border: "1px solid #333",
+            borderRadius: "1.5rem",
+          }}
+        >
+          <DialogHeader>
+            <DialogTitle className="text-white text-xl font-semibold">
+              Save your playlist?
+            </DialogTitle>
+            <DialogDescription className="text-gray-400 pt-2">
+              You have unsaved changes. Do you want to export your playlist to Spotify or discard it?
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="gap-3" style={{ gap: "1rem" }}>
+            <button
+              onClick={() => setShowExitModal(false)}
+              className="px-6 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
+              style={{
+                backgroundColor: "transparent",
+                color: "#fff",
+                border: "1px solid #333",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#2a2a2a"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent"
+              }}
+            >
+              Cancel
+            </button>
+            <button
+              onClick={() => handleExitConfirm('discard')}
+              className="px-6 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
+              style={{
+                backgroundColor: "transparent",
+                color: "#ef4444",
+                border: "1px solid #ef4444",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "rgba(239, 68, 68, 0.1)"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "transparent"
+              }}
+            >
+              <Trash2 size={16} className="inline mr-2" />
+              Discard
+            </button>
+            <button
+              onClick={() => handleExitConfirm('save')}
+              className="px-6 py-2 rounded-full transition-all duration-300 font-sans text-sm font-medium"
+              style={{
+                backgroundColor: "#1DB954",
+                color: "#000",
+              }}
+              onMouseEnter={(e) => {
+                e.currentTarget.style.backgroundColor = "#1ed760"
+              }}
+              onMouseLeave={(e) => {
+                e.currentTarget.style.backgroundColor = "#1DB954"
+              }}
+            >
+              <ExternalLink size={16} className="inline mr-2" />
+              Export to Spotify
             </button>
           </DialogFooter>
         </DialogContent>
