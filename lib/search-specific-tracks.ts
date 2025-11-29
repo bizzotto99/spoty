@@ -20,8 +20,19 @@ async function searchSingleTrack(
   artistName: string
 ): Promise<Track | null> {
   try {
+    // Validar que trackName y artistName sean strings válidos
+    if (!trackName || typeof trackName !== 'string' || trackName.trim().length === 0) {
+      console.warn(`[searchSingleTrack] ❌ trackName inválido:`, trackName)
+      return null
+    }
+    
+    if (!artistName || typeof artistName !== 'string' || artistName.trim().length === 0) {
+      console.warn(`[searchSingleTrack] ❌ artistName inválido:`, artistName)
+      return null
+    }
+    
     // Buscar track con query: "track:{trackName} artist:{artistName}"
-    const query = `track:"${trackName}" artist:"${artistName}"`
+    const query = `track:"${trackName.trim()}" artist:"${artistName.trim()}"`
     console.log(`[searchSingleTrack] 🔍 Buscando: "${trackName}" de "${artistName}"`)
     const searchRes = await spotifyApiRequest(
       `/search?q=${encodeURIComponent(query)}&type=track&limit=5&market=US`,
@@ -43,8 +54,8 @@ async function searchSingleTrack(
 
     // Buscar el track que coincida mejor (mismo artista)
     const matchingTrack = tracks.find((t: any) => {
-      const trackArtist = t.artists?.[0]?.name?.toLowerCase() || ""
-      const searchArtist = artistName.toLowerCase()
+      const trackArtist = (t.artists?.[0]?.name || "").toString().toLowerCase()
+      const searchArtist = (artistName || "").toString().toLowerCase()
       return trackArtist.includes(searchArtist) || searchArtist.includes(trackArtist)
     }) || tracks[0]
 

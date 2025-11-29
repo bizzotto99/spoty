@@ -51,10 +51,37 @@ export async function POST(request: NextRequest) {
 
     // 6. Buscar SOLO las canciones específicas que OpenAI seleccionó en Spotify
     console.log(`🔍 Buscando ${trackSelection.tracks.length} canciones específicas en Spotify...`)
-    const trackQueries = trackSelection.tracks.map(t => ({
-      trackName: t.trackName,
-      artistName: t.artistName
-    }))
+    
+    // Validar y filtrar tracks con datos válidos
+    const trackQueries = trackSelection.tracks
+      .filter(t => {
+        const isValid = t && 
+          t.trackName && 
+          typeof t.trackName === 'string' && 
+          t.trackName.trim().length > 0 &&
+          t.artistName && 
+          typeof t.artistName === 'string' && 
+          t.artistName.trim().length > 0
+          
+        if (!isValid) {
+          console.warn(`[generate-playlist] ⚠️ Track inválido ignorado:`, t)
+        }
+        return isValid
+      })
+      .map(t => ({
+        trackName: String(t.trackName).trim(),
+        artistName: String(t.artistName).trim()
+      }))
+
+    if (trackQueries.length === 0) {
+      return NextResponse.json(
+        {
+          error: "No se recibieron canciones válidas de OpenAI. Intenta con otro prompt.",
+          selectedTracks: trackSelection.tracks,
+        },
+        { status: 400 }
+      )
+    }
 
     const tracks = await searchSpecificTracks(trackQueries, accessToken)
 

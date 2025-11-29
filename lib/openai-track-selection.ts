@@ -166,6 +166,37 @@ Selecciona exactamente ${maxTracks} canciones específicas del label Dale Play R
       throw new Error(`OpenAI devolvió ${result.tracks?.length || 0} canciones, se esperaban ${maxTracks}`)
     }
 
+    // Validar que todos los tracks tengan trackName y artistName válidos (strings)
+    const validTracks = result.tracks.filter((t: any) => {
+      const isValid = t && 
+        t.trackName && 
+        typeof t.trackName === 'string' && 
+        t.trackName.trim().length > 0 &&
+        t.artistName && 
+        typeof t.artistName === 'string' && 
+        t.artistName.trim().length > 0
+      
+      if (!isValid) {
+        console.warn(`[selectTracksWithOpenAI] ⚠️ Track inválido recibido de OpenAI:`, t)
+      }
+      return isValid
+    })
+
+    if (validTracks.length !== result.tracks.length) {
+      console.warn(`[selectTracksWithOpenAI] OpenAI devolvió ${result.tracks.length} tracks, pero solo ${validTracks.length} son válidos`)
+    }
+
+    // Asegurar que los valores sean strings y estén limpios
+    result.tracks = validTracks.map((t: any) => ({
+      trackName: String(t.trackName).trim(),
+      artistName: String(t.artistName).trim(),
+      reason: t.reason ? String(t.reason).trim() : undefined
+    }))
+
+    if (result.tracks.length === 0) {
+      throw new Error(`OpenAI no devolvió tracks válidos. Todos los tracks tenían datos inválidos.`)
+    }
+
     console.log(`✅ OpenAI seleccionó ${result.tracks.length} canciones específicas para la playlist`)
     return result
 
