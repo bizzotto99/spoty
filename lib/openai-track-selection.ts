@@ -3,7 +3,8 @@
  * Devuelve una lista de canciones específicas (track name + artist name) para buscar en Spotify
  */
 
-import { getBPMForActivity, findMatchingActivities } from "./activity-matcher"
+// BPM filtering deshabilitado temporalmente - se probará después
+// import { getBPMForActivity, findMatchingActivities } from "./activity-matcher"
 import { extractDurationAndCalculateTracks } from "./openai"
 
 export interface SelectedTrack {
@@ -36,22 +37,13 @@ export async function selectTracksWithOpenAI(
     throw new Error("OPENAI_API_KEY no está configurada")
   }
 
-  // Detectar actividad y BPM si aplica
-  let activityBPM: { min: number; max: number } | null = null
-  let identifiedActivity: string | null = null
-  
-  const activities = findMatchingActivities(userPrompt)
-  if (activities.length > 0 && activities[0] && activities[0].actividad && typeof activities[0].actividad === 'string') {
-    identifiedActivity = String(activities[0].actividad) // Asegurar que sea string
-    const bpmRange = getBPMForActivity(identifiedActivity)
-    if (bpmRange) {
-      activityBPM = bpmRange
-    }
-  }
+  // BPM filtering deshabilitado temporalmente - se probará después
+  // let activityBPM: { min: number; max: number } | null = null
+  // let identifiedActivity: string | null = null
 
   const functionDefinition = {
     name: "selectPlaylistTracks",
-    description: "Selecciona canciones específicas del label Dale Play Records para crear una playlist personalizada. DEBES seleccionar canciones reales que existan en el catálogo de Dale Play Records.",
+    description: "Selecciona canciones específicas del sello discográfico (record label) 'Dale Play Records' para crear una playlist personalizada. TODAS las canciones deben estar publicadas bajo este label. DEBES seleccionar canciones reales que existan en el catálogo de Dale Play Records en Spotify.",
     parameters: {
       type: "object",
       properties: {
@@ -74,7 +66,7 @@ export async function selectTracksWithOpenAI(
               },
               artistName: {
                 type: "string",
-                description: "Nombre EXACTO del artista tal como aparece en Spotify (debe ser uno de los artistas disponibles del label)"
+                description: "Nombre EXACTO del artista tal como aparece en Spotify. El artista DEBE pertenecer al sello discográfico 'Dale Play Records'."
               },
               reason: {
                 type: "string",
@@ -83,7 +75,7 @@ export async function selectTracksWithOpenAI(
             },
             required: ["trackName", "artistName"]
           },
-          description: `Array de canciones específicas. DEBE tener exactamente ${maxTracks} canciones. Todas las canciones DEBEN ser del label Dale Play Records.`,
+          description: `Array de canciones específicas. DEBE tener exactamente ${maxTracks} canciones. Todas las canciones DEBEN estar publicadas bajo el sello discográfico "Dale Play Records" (verificado en los metadatos del label en Spotify).`,
           minItems: maxTracks,
           maxItems: maxTracks
         }
@@ -99,29 +91,43 @@ ${labelData.artists.map(a => `- ${a.name}${a.genres.length > 0 ? ` (géneros: ${
 
 GÉNEROS DISPONIBLES EN EL LABEL:
 ${labelData.genres.length > 0 ? labelData.genres.join(", ") : "Variados"}`
-    : `El label "Dale Play Records" es un sello discográfico. Selecciona canciones que estén publicadas bajo este label.`
+    : `"Dale Play Records" es un SELLO DISCROGRÁFICO (record label). Todas las canciones que selecciones DEBEN estar publicadas bajo este sello discográfico y aparecer en su catálogo en Spotify.`
 
-  const systemMessage = `Eres un experto en música y creación de playlists personalizadas para el label "Dale Play Records".
+  const systemMessage = `Eres un experto en música y creación de playlists personalizadas para el sello discográfico "Dale Play Records".
+
+CONTEXTO IMPORTANTE:
+- "Dale Play Records" es un SELLO DISCROGRÁFICO (record label)
+- TODAS las canciones que selecciones DEBEN estar publicadas bajo este sello discográfico
+- El catálogo de "Dale Play Records" en Spotify contiene canciones de varios artistas que pertenecen a este label
 
 INSTRUCCIONES CRÍTICAS:
-1. Debes seleccionar ${maxTracks} canciones ESPECÍFICAS del label Dale Play Records
-2. Las canciones DEBEN existir realmente en el catálogo de Dale Play Records en Spotify
-3. Los nombres de las canciones y artistas DEBEN ser EXACTOS (como aparecen en Spotify)
-4. ${labelData.artists.length > 0 ? 'Todos los artistas DEBEN estar en la lista de artistas disponibles del label (ver abajo).' : 'Las canciones deben ser de artistas que pertenezcan al label Dale Play Records.'}
-5. ${activityBPM ? `⚠️ ACTIVIDAD IDENTIFICADA: "${identifiedActivity}" con BPM recomendado: ${activityBPM.min}-${activityBPM.max}. Prioriza canciones que tengan este rango de BPM.` : ''}
-6. Selecciona canciones que cumplan con el prompt del usuario
+1. Debes seleccionar EXACTAMENTE ${maxTracks} canciones ESPECÍFICAS del sello discográfico "Dale Play Records"
+2. Las canciones DEBEN existir realmente en el catálogo de "Dale Play Records" en Spotify (verificadas por el label en los metadatos del álbum)
+3. Los nombres de las canciones y artistas DEBEN ser EXACTOS (tal como aparecen en Spotify)
+4. ${labelData.artists.length > 0 ? 'Si hay artistas listados, úsalos como referencia. Todos los tracks deben ser de artistas que pertenezcan al label.' : 'Todos los tracks deben ser de artistas que pertenezcan al sello discográfico "Dale Play Records".'}
+5. El prompt del usuario contiene:
+   - DURACIÓN: Define cuántas canciones necesitas (${maxTracks} canciones)
+   - SUGERENCIAS: Puede mencionar artistas, géneros, mood, etc. - PERO todos deben estar dentro del label "Dale Play Records"
+6. Si el usuario sugiere un artista o género, SOLO selecciona canciones de ese artista/género SI están en el label "Dale Play Records"
 7. Varía los artistas (no más de 2-3 canciones del mismo artista)
 8. El orden de las canciones debe ser lógico para la playlist
 
 ${labelInfo}
 
-IMPORTANTE: Si no estás seguro de que una canción exista exactamente con ese nombre, NO la incluyas. Solo selecciona canciones que estés seguro que existen en el label Dale Play Records.`
+IMPORTANTE: 
+- Si no estás seguro de que una canción exista exactamente con ese nombre en el label "Dale Play Records", NO la incluyas
+- Solo selecciona canciones que estés seguro que existen y están publicadas bajo el sello discográfico "Dale Play Records"`
 
   const userMessage = `PROMPT DEL USUARIO: "${userPrompt}"
 
-${activityBPM ? `⚠️ ACTIVIDAD: "${identifiedActivity}" - Prioriza canciones con BPM entre ${activityBPM.min} y ${activityBPM.max}.` : ''}
+INSTRUCCIONES:
+- Selecciona EXACTAMENTE ${maxTracks} canciones específicas del sello discográfico "Dale Play Records"
+- El prompt contiene la duración (${maxTracks} canciones) y posibles sugerencias de artista, género, mood, etc.
+- TODAS las canciones deben ser del label "Dale Play Records" (verificado en Spotify)
+- Si el prompt menciona artistas o géneros, respétalos SOLO si están disponibles en el label
+- Los nombres de canciones y artistas deben ser EXACTOS como aparecen en Spotify
 
-Selecciona exactamente ${maxTracks} canciones específicas del label Dale Play Records que mejor cumplan con este prompt. Usa la función selectPlaylistTracks.`
+Usa la función selectPlaylistTracks para seleccionar las ${maxTracks} canciones.`
 
   try {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
