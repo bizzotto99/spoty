@@ -1,21 +1,12 @@
 /**
- * Busca tracks específicos en Spotify basándose en nombre y artista
+ * Busca tracks específicos en Spotify por nombre y artista
+ * Usado después de que OpenAI selecciona las canciones específicas
  */
 
 import { spotifyApiRequest } from "./spotify"
+import type { Track } from "./search-daleplay"
 
-export interface Track {
-  id: string
-  name: string
-  artist: string
-  album: string
-  image: string
-  duration_ms: number
-  preview_url?: string
-  uri: string
-}
-
-export interface TrackSearchQuery {
+export interface TrackQuery {
   trackName: string
   artistName: string
 }
@@ -23,13 +14,13 @@ export interface TrackSearchQuery {
 /**
  * Busca un track específico en Spotify por nombre y artista
  */
-async function searchTrackInSpotify(
+async function searchSingleTrack(
+  accessToken: string,
   trackName: string,
-  artistName: string,
-  accessToken: string
+  artistName: string
 ): Promise<Track | null> {
   try {
-    // Buscar el track en Spotify
+    // Buscar track con query: "track:{trackName} artist:{artistName}"
     const query = `track:"${trackName}" artist:"${artistName}"`
     const searchRes = await spotifyApiRequest(
       `/search?q=${encodeURIComponent(query)}&type=track&limit=5&market=US`,
@@ -42,32 +33,33 @@ async function searchTrackInSpotify(
     }
 
     const searchData = await searchRes.json()
+    const tracks = searchData.tracks?.items || []
 
-    if (!searchData.tracks?.items || searchData.tracks.items.length === 0) {
+    if (tracks.length === 0) {
       console.warn(`No se encontró track "${trackName}" de "${artistName}"`)
       return null
     }
 
-    // Buscar el mejor match (artista coincide mejor)
-    const tracks = searchData.tracks.items
-    const bestMatch = tracks.find((t: any) => 
-      t.artists?.some((a: any) => 
-        a.name.toLowerCase().includes(artistName.toLowerCase()) ||
-        artistName.toLowerCase().includes(a.name.toLowerCase())
-      )
-    ) || tracks[0]
+    // Buscar el track que coincida mejor (mismo artista)
+    const matchingTrack = tracks.find((t: any) => {
+      const trackArtist = t.artists?.[0]?.name?.toLowerCase() || ""
+      const searchArtist = artistName.toLowerCase()
+      return trackArtist.includes(searchArtist) || searchArtist.includes(trackArtist)
+    }) || tracks[0]
 
-    const track = bestMatch as any
-    return {
-      id: track.id,
-      name: track.name,
-      artist: track.artists?.[0]?.name || artistName,
-      album: track.album?.name || "Unknown",
-      image: track.album?.images?.[0]?.url || "/icon.png",
-      duration_ms: track.duration_ms || 0,
-      preview_url: track.preview_url || undefined,
-      uri: track.uri,
+    // Convertir a formato Track
+    const track: Track = {
+      id: matchingTrack.id,
+      name: matchingTrack.name,
+      artist: matchingTrack.artists?.[0]?.name || artistName,
+      album: matchingTrack.album?.name || "Unknown",
+      image: matchingTrack.album?.images?.[0]?.url || "/icon.png",
+      duration_ms: matchingTrack.duration_ms || 0,
+      preview_url: matchingTrack.preview_url || undefined,
+      uri: matchingTrack.uri,
     }
+
+    return track
   } catch (error) {
     console.error(`Error buscando track "${trackName}" de "${artistName}":`, error)
     return null
@@ -76,39 +68,43 @@ async function searchTrackInSpotify(
 
 /**
  * Busca múltiples tracks específicos en Spotify
- * Devuelve solo los tracks que se encontraron exitosamente
+ * Con delays para evitar rate limiting
  */
 export async function searchSpecificTracks(
-  trackQueries: TrackSearchQuery[],
+  trackQueries: TrackQuery[],
   accessToken: string
 ): Promise<Track[]> {
   const foundTracks: Track[] = []
-  
-  // Buscar tracks con delays para evitar rate limiting
+  const seenTrackIds = new Set<string>()
+
   for (let i = 0; i < trackQueries.length; i++) {
     const query = trackQueries[i]
-    
-    try {
-      const track = await searchTrackInSpotify(query.trackName, query.artistName, accessToken)
-      
-      if (track) {
-        foundTracks.push(track)
-        console.log(`✅ Encontrado: "${track.name}" - ${track.artist}`)
-      } else {
-        console.warn(`❌ No encontrado: "${query.trackName}" - ${query.artistName}`)
-      }
 
-      // Aumentar delay a 500ms entre búsquedas para evitar rate limiting
-      if (i < trackQueries.length - 1) {
-        await new Promise(resolve => setTimeout(resolve, 500)) // 500ms entre búsquedas
+    // Delay entre requests (500ms excepto la primera)
+    if (i > 0) {
+      await new Promise(resolve => setTimeout(resolve, 500))
+    }
+
+    try {
+      const track = await searchSingleTrack(
+        accessToken,
+        query.trackName,
+        query.artistName
+      )
+
+      if (track && !seenTrackIds.has(track.id)) {
+        seenTrackIds.add(track.id)
+        foundTracks.push(track)
+        console.log(`✅ Encontrado: "${track.name}" de "${track.artist}"`)
+      } else if (!track) {
+        console.warn(`❌ No encontrado: "${query.trackName}" de "${query.artistName}"`)
       }
     } catch (error) {
       console.error(`Error procesando track "${query.trackName}":`, error)
-      // Continuar con el siguiente track
+      continue
     }
   }
 
-  console.log(`📊 Total tracks encontrados: ${foundTracks.length} de ${trackQueries.length} solicitados`)
+  console.log(`🎵 Encontrados ${foundTracks.length} de ${trackQueries.length} tracks solicitados`)
   return foundTracks
 }
-
