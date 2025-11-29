@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
+import { userExistsByEmail } from "@/lib/supabase-users"
 
 // Spotify OAuth callback handler
 
@@ -88,6 +89,32 @@ export async function GET(request: NextRequest) {
     }
 
     const user = await userResponse.json()
+
+    // Verificar si el email del usuario existe en la base de datos
+    if (user.email) {
+      try {
+        const emailExists = await userExistsByEmail(user.email)
+        
+        if (!emailExists) {
+          // Usuario no autorizado - el email no está en la base de datos
+          return NextResponse.redirect(
+            new URL("/?error=user_not_authorized", request.url)
+          )
+        }
+      } catch (error) {
+        console.error("Error verificando usuario en base de datos:", error)
+        // En caso de error de base de datos, podrías decidir si bloquear o permitir
+        // Por seguridad, vamos a bloquear
+        return NextResponse.redirect(
+          new URL("/?error=database_error", request.url)
+        )
+      }
+    } else {
+      // Si el usuario no tiene email, bloquear acceso
+      return NextResponse.redirect(
+        new URL("/?error=no_email_provided", request.url)
+      )
+    }
 
     // Determinar configuración de cookies y dominio
     const isProduction = process.env.NODE_ENV === "production"
