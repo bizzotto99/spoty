@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { createPlaylistInSpotify } from "@/lib/create-playlist"
+import { getUserBySpotifyId } from "@/lib/supabase-users"
+import { createPlaylist as createPlaylistInDB } from "@/lib/supabase-playlists"
 
 /**
  * API Route para crear la playlist en Spotify del usuario
@@ -80,7 +82,28 @@ export async function POST(request: NextRequest) {
       imagePath: "playlist.png", // Imagen por defecto para todas las playlists
     })
 
-    // 5. Retornar resultado
+    // 5. Guardar la playlist en la base de datos
+    try {
+      // Obtener el user_id (UUID) desde la base de datos usando el spotify_user_id
+      const dbUser = await getUserBySpotifyId(userId)
+      
+      if (dbUser && dbUser.id) {
+        // Guardar la playlist en Supabase
+        await createPlaylistInDB({
+          spotify_playlist_id: result.id,
+          user_id: dbUser.id,
+        })
+        console.log(`Playlist ${result.id} guardada en base de datos para usuario ${dbUser.id}`)
+      } else {
+        console.warn(`Usuario con spotify_user_id ${userId} no encontrado en base de datos. La playlist se creó en Spotify pero no se guardó en DB.`)
+      }
+    } catch (dbError) {
+      // No fallar si hay error de base de datos, solo loguear
+      console.error("Error guardando playlist en base de datos:", dbError)
+      // La playlist ya está creada en Spotify, así que continuamos
+    }
+
+    // 6. Retornar resultado
     return NextResponse.json({
       success: true,
       playlistId: result.id,

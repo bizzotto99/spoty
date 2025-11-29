@@ -43,6 +43,18 @@ export default function PlaylistPrompt() {
           errorMessage = "Security check failed"
           errorDescription = "Please try connecting again."
           break
+        case "user_not_authorized":
+          errorMessage = "Access denied"
+          errorDescription = "Your email is not authorized to access this application. Please contact support."
+          break
+        case "database_error":
+          errorMessage = "Database error"
+          errorDescription = "There was a problem verifying your account. Please try again later."
+          break
+        case "no_email_provided":
+          errorMessage = "Email required"
+          errorDescription = "Your Spotify account doesn't have an email associated. Please add an email to your Spotify account and try again."
+          break
         default:
           errorMessage = "Connection failed"
           errorDescription = `Error: ${error}. Please try again.`
