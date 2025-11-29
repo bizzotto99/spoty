@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from "next/server"
 import { cookies } from "next/headers"
 import { extractDurationAndCalculateTracks } from "@/lib/openai"
-import { searchDalePlayArtistsOptimized } from "@/lib/search-daleplay-optimized"
 import { selectTracksWithOpenAI } from "@/lib/openai-track-selection"
 import { searchSpecificTracks } from "@/lib/search-specific-tracks"
 
@@ -39,34 +38,13 @@ export async function POST(request: NextRequest) {
     // 3. Calcular cantidad de tracks necesarios primero
     const maxTracksNeeded = extractDurationAndCalculateTracks(prompt.trim())
 
-    // 4. Obtener SOLO artistas del label (para contexto de OpenAI) - NO buscamos tracks todavía
-    console.log(`🔍 Obteniendo artistas del label Dale Play Records para contexto...`)
-    const dalePlayArtists = await searchDalePlayArtistsOptimized(accessToken, 15) // Obtener más artistas para contexto
-
-    if (dalePlayArtists.length === 0) {
-      return NextResponse.json(
-        { error: "No se encontraron artistas del label Dale Play Records" },
-        { status: 404 }
-      )
-    }
-
-    // Extraer géneros de los artistas de Dale Play
-    const dalePlayGenres: string[] = []
-    dalePlayArtists.forEach(artist => {
-      artist.genres.forEach(genre => {
-        if (!dalePlayGenres.includes(genre)) {
-          dalePlayGenres.push(genre)
-        }
-      })
-    })
-
-    // 5. Llamar a OpenAI para que seleccione canciones ESPECÍFICAS del label
-    console.log(`🤖 OpenAI seleccionando ${maxTracksNeeded} canciones específicas del label...`)
+    // 4. Llamar a OpenAI con SOLO el prompt y el nombre del label (SIN hacer requests a Spotify antes)
+    console.log(`🤖 OpenAI seleccionando ${maxTracksNeeded} canciones específicas del label Dale Play Records...`)
     const trackSelection = await selectTracksWithOpenAI(
       prompt.trim(),
       {
-        artists: dalePlayArtists.map(a => ({ name: a.name, genres: a.genres })),
-        genres: dalePlayGenres,
+        artists: [], // No enviamos artistas - OpenAI trabajará con solo el prompt y el nombre del label
+        genres: [], // No enviamos géneros - se simplifica el flujo
       },
       maxTracksNeeded
     )

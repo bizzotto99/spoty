@@ -19,8 +19,8 @@ export interface TrackSelectionResult {
 }
 
 export interface LabelData {
-  artists: Array<{ name: string; genres: string[] }>
-  genres: string[]
+  artists: Array<{ name: string; genres: string[] }> // Puede estar vacío - solo para contexto adicional si está disponible
+  genres: string[] // Puede estar vacío - solo para contexto adicional si está disponible
 }
 
 /**
@@ -92,8 +92,14 @@ export async function selectTracksWithOpenAI(
     }
   }
 
-  const artistsList = labelData.artists.map(a => `- ${a.name} (géneros: ${a.genres.join(", ") || "N/A"})`).join("\n")
-  const genresList = labelData.genres.length > 0 ? labelData.genres.join(", ") : "Variados"
+  // Construir información del label (si está disponible, sino solo el nombre)
+  const labelInfo = labelData.artists.length > 0 
+    ? `ARTISTAS DISPONIBLES EN DALE PLAY RECORDS:
+${labelData.artists.map(a => `- ${a.name}${a.genres.length > 0 ? ` (géneros: ${a.genres.join(", ")})` : ''}`).join("\n")}
+
+GÉNEROS DISPONIBLES EN EL LABEL:
+${labelData.genres.length > 0 ? labelData.genres.join(", ") : "Variados"}`
+    : `El label "Dale Play Records" es un sello discográfico. Selecciona canciones que estén publicadas bajo este label.`
 
   const systemMessage = `Eres un experto en música y creación de playlists personalizadas para el label "Dale Play Records".
 
@@ -101,19 +107,15 @@ INSTRUCCIONES CRÍTICAS:
 1. Debes seleccionar ${maxTracks} canciones ESPECÍFICAS del label Dale Play Records
 2. Las canciones DEBEN existir realmente en el catálogo de Dale Play Records en Spotify
 3. Los nombres de las canciones y artistas DEBEN ser EXACTOS (como aparecen en Spotify)
-4. Todos los artistas DEBEN estar en la lista de artistas disponibles del label
+4. ${labelData.artists.length > 0 ? 'Todos los artistas DEBEN estar en la lista de artistas disponibles del label (ver abajo).' : 'Las canciones deben ser de artistas que pertenezcan al label Dale Play Records.'}
 5. ${activityBPM ? `⚠️ ACTIVIDAD IDENTIFICADA: "${identifiedActivity}" con BPM recomendado: ${activityBPM.min}-${activityBPM.max}. Prioriza canciones que tengan este rango de BPM.` : ''}
 6. Selecciona canciones que cumplan con el prompt del usuario
 7. Varía los artistas (no más de 2-3 canciones del mismo artista)
 8. El orden de las canciones debe ser lógico para la playlist
 
-ARTISTAS DISPONIBLES EN DALE PLAY RECORDS:
-${artistsList}
+${labelInfo}
 
-GÉNEROS DISPONIBLES EN EL LABEL:
-${genresList}
-
-IMPORTANTE: Si no estás seguro de que una canción exista exactamente con ese nombre, NO la incluyas. Solo selecciona canciones que estés seguro que existen en el label.`
+IMPORTANTE: Si no estás seguro de que una canción exista exactamente con ese nombre, NO la incluyas. Solo selecciona canciones que estés seguro que existen en el label Dale Play Records.`
 
   const userMessage = `PROMPT DEL USUARIO: "${userPrompt}"
 
