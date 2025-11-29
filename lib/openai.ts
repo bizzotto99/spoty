@@ -35,7 +35,7 @@ export interface UserSpotifyData {
 /**
  * Extrae el tiempo del prompt y calcula la cantidad de canciones
  */
-function extractDurationAndCalculateTracks(userPrompt: string): number {
+export function extractDurationAndCalculateTracks(userPrompt: string): number {
   const timePatterns = [
     { 
       regex: /(\d+)\s*(?:hora|horas|hr|hrs|h)\s*(?:y|,|\s)?\s*(\d+)\s*(?:minuto|minutos|min|mins)/i, 
