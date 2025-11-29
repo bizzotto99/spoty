@@ -216,7 +216,7 @@ export default function RecordsPage() {
           ) : !isAuthenticated ? (
             <div className="text-center">
             <div className="flex items-center justify-center gap-4 mb-4">
-              <h1 className="text-white text-5xl font-bold tracking-tight" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+              <h1 className="text-white text-5xl font-bold" style={{ fontFamily: "var(--font-instrument-serif), 'Instrument Serif', serif", letterSpacing: "-0.03em" }}>
                 Records
               </h1>
               <span 
@@ -238,7 +238,7 @@ export default function RecordsPage() {
           <div className="w-full max-w-4xl mx-auto px-4">
             <div className="text-center mb-8">
               <div className="flex items-center justify-center gap-4 mb-4 flex-wrap">
-                <h1 className="text-white text-5xl font-bold tracking-tight" style={{ fontFamily: "system-ui, -apple-system, sans-serif" }}>
+                <h1 className="text-white text-5xl font-bold" style={{ fontFamily: "var(--font-instrument-serif), 'Instrument Serif', serif", letterSpacing: "-0.03em" }}>
                   Scale Your Playlist Creation
                 </h1>
                 <span 

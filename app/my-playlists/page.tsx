@@ -103,7 +103,7 @@ export default function MyPlaylistsPage() {
               <span className="text-sm font-medium">Back</span>
             </button>
             
-            <h1 className="text-4xl md:text-5xl font-bold text-white mb-2">
+            <h1 className="text-4xl md:text-5xl font-bold text-white mb-2" style={{ fontFamily: "var(--font-instrument-serif), 'Instrument Serif', serif", letterSpacing: "-0.03em" }}>
               My Playlists
             </h1>
             <p className="text-gray-400 text-sm">
