@@ -73,22 +73,63 @@ async function searchSingleTrack(
       return null
     }
 
-    // Tomar el primer resultado (el más relevante según Spotify)
-    const trackItem = tracks[0]
-    
-    const track: Track = {
-      id: trackItem.id,
-      name: trackItem.name,
-      artist: trackItem.artists?.[0]?.name || artistName,
-      album: trackItem.album?.name || "Unknown",
-      image: trackItem.album?.images?.[0]?.url || "/icon.png",
-      duration_ms: trackItem.duration_ms || 0,
-      preview_url: trackItem.preview_url || undefined,
-      uri: trackItem.uri,
+    // Verificar que el track pertenezca al label "Dale Play Records"
+    // Revisar múltiples candidatos si el primero no cumple
+    for (const trackItem of tracks) {
+      if (!trackItem.album?.id) continue
+      
+      try {
+        // Pequeño delay antes de verificar el álbum
+        await new Promise(resolve => setTimeout(resolve, 500))
+        
+        // Obtener detalles del álbum para verificar el label
+        const albumRes = await spotifyApiRequest(
+          `/albums/${trackItem.album.id}?market=US`,
+          accessToken,
+          { context: `verify label for album ${trackItem.album.id}` }
+        )
+        
+        if (!albumRes.ok) {
+          console.warn(`Error obteniendo álbum para verificar label: ${albumRes.status}`)
+          continue
+        }
+        
+        const albumDetails = await albumRes.json()
+        const albumLabel = (albumDetails.label || "").toLowerCase().trim()
+        
+        // Verificar que contenga "dale play records" (case-insensitive)
+        const belongsToLabel = albumLabel.includes('dale play') || 
+                               albumLabel.includes('daleplay') ||
+                               albumLabel.includes('dale play records')
+        
+        if (belongsToLabel) {
+          // Track válido del label correcto
+          const track: Track = {
+            id: trackItem.id,
+            name: trackItem.name,
+            artist: trackItem.artists?.[0]?.name || artistName,
+            album: trackItem.album?.name || "Unknown",
+            image: trackItem.album?.images?.[0]?.url || "/icon.png",
+            duration_ms: trackItem.duration_ms || 0,
+            preview_url: trackItem.preview_url || undefined,
+            uri: trackItem.uri,
+          }
+          
+          console.log(`✅ Track encontrado y verificado (label: "${albumDetails.label}"): "${track.name}" de "${track.artist}"`)
+          return track
+        } else {
+          console.warn(`⚠️ Track "${trackItem.name}" encontrado pero NO es de Dale Play Records (label: "${albumDetails.label}")`)
+          continue
+        }
+      } catch (error) {
+        console.error(`Error verificando label para "${trackItem.name}":`, error)
+        continue
+      }
     }
-    
-    console.log(`✅ Track encontrado: "${track.name}" de "${track.artist}"`)
-    return track
+
+    // Si ningún track cumple con el label
+    console.warn(`❌ Track "${trackName}" de "${artistName}" no pertenece a Dale Play Records`)
+    return null
 
   } catch (error) {
     console.error(`Error buscando track "${trackName}" de "${artistName}":`, error)
@@ -107,15 +148,15 @@ export async function searchSpecificTracks(
   const foundTracks: Track[] = []
   const seenTrackIds = new Set<string>()
 
-  console.log(`🔍 Buscando ${trackQueries.length} tracks en Spotify con delays de 5s...`)
+  console.log(`🔍 Buscando ${trackQueries.length} tracks en Spotify con delays de 2s...`)
 
   for (let i = 0; i < trackQueries.length; i++) {
     const query = trackQueries[i]
 
-    // Delay de 5 segundos entre búsquedas (excepto la primera)
+    // Delay de 2 segundos entre búsquedas (excepto la primera)
     if (i > 0) {
-      console.log(`⏳ Esperando 5 segundos antes de buscar track ${i + 1}/${trackQueries.length}...`)
-      await new Promise(resolve => setTimeout(resolve, 5000))
+      console.log(`⏳ Esperando 2 segundos antes de buscar track ${i + 1}/${trackQueries.length}...`)
+      await new Promise(resolve => setTimeout(resolve, 2000))
     }
 
     try {
