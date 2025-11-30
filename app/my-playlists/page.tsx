@@ -299,36 +299,6 @@ export default function MyPlaylistsPage() {
     }
   }
 
-  const calculateArtistMetrics = () => {
-    if (playlistTracks.length === 0) {
-      return {
-        uniqueArtists: 0,
-        topArtists: [],
-      }
-    }
-
-    // Contar apariciones de cada artista
-    const artistCount: Record<string, number> = {}
-    playlistTracks.forEach(track => {
-      const artist = track.artist
-      artistCount[artist] = (artistCount[artist] || 0) + 1
-    })
-
-    // Obtener artistas únicos
-    const uniqueArtists = Object.keys(artistCount).length
-
-    // Obtener top 3 artistas
-    const topArtists = Object.entries(artistCount)
-      .sort((a, b) => b[1] - a[1])
-      .slice(0, 3)
-      .map(([name, count]) => ({ name, count }))
-
-    return {
-      uniqueArtists,
-      topArtists,
-    }
-  }
-
   const generateTracks = async (promptText: string): Promise<{ tracks: Track[]; playlistName: string; description: string }> => {
     const response = await fetch("/api/generate-playlist", {
       method: "POST",
