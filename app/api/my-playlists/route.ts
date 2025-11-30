@@ -66,6 +66,8 @@ export async function GET(request: NextRequest) {
               followers: spotifyData.followers?.total || 0,
               views: 0, // Spotify no proporciona views directamente
               saves: 0, // Spotify no proporciona saves directamente
+              public: spotifyData.public !== undefined ? spotifyData.public : true,
+              collaborative: spotifyData.collaborative !== undefined ? spotifyData.collaborative : false,
             }
           } else {
             // Si no se puede obtener de Spotify, devolver datos básicos

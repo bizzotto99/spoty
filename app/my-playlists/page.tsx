@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Music, ExternalLink, Loader2, LogOut, ChevronDown, ListMusic, Eye, Bookmark, Users, Clock, Calendar, GripVertical, Trash2, Play, Send } from "lucide-react"
+import { ArrowLeft, Music, ExternalLink, Loader2, LogOut, ChevronDown, ListMusic, Eye, Bookmark, Users, Clock, Calendar, GripVertical, Trash2, Play, Send, User } from "lucide-react"
 import { ParticlesBackground } from "@/components/particles-background"
 import { useSpotifyAuth } from "@/hooks/use-spotify-auth"
 import {
@@ -25,6 +25,8 @@ interface Playlist {
   followers?: number
   views?: number
   saves?: number
+  public?: boolean
+  collaborative?: boolean
 }
 
 interface Track {
@@ -113,9 +115,41 @@ export default function MyPlaylistsPage() {
     }
   }
 
-  const handlePlaylistClick = (playlist: Playlist) => {
+  const fetchPlaylistDetails = async (playlistId: string) => {
+    try {
+      const response = await fetch(`/api/playlist/${playlistId}/details`, {
+        credentials: "include",
+      })
+
+      if (!response.ok) {
+        console.error("Error obteniendo detalles de playlist")
+        return null
+      }
+
+      const data = await response.json()
+      return data.playlist
+    } catch (error) {
+      console.error("Error fetching playlist details:", error)
+      return null
+    }
+  }
+
+  const handlePlaylistClick = async (playlist: Playlist) => {
     setSelectedPlaylist(playlist)
     fetchPlaylistTracks(playlist.spotify_playlist_id)
+    
+    // Actualizar métricas reales de la playlist
+    const updatedDetails = await fetchPlaylistDetails(playlist.spotify_playlist_id)
+    if (updatedDetails) {
+      setSelectedPlaylist({
+        ...playlist,
+        followers: updatedDetails.followers || playlist.followers,
+        tracks_count: updatedDetails.tracks_count || playlist.tracks_count,
+        public: updatedDetails.public !== undefined ? updatedDetails.public : playlist.public,
+        collaborative: updatedDetails.collaborative !== undefined ? updatedDetails.collaborative : playlist.collaborative,
+        // Views y saves no están disponibles en Spotify API
+      })
+    }
   }
 
   const handleBackToGrid = () => {
@@ -233,6 +267,66 @@ export default function MyPlaylistsPage() {
 
   const calculateTotalDuration = () => {
     return playlistTracks.reduce((total, track) => total + track.duration_ms, 0)
+  }
+
+  const calculateArtistMetrics = () => {
+    if (playlistTracks.length === 0) {
+      return {
+        uniqueArtists: 0,
+        topArtists: [],
+      }
+    }
+
+    // Contar apariciones de cada artista
+    const artistCount: Record<string, number> = {}
+    playlistTracks.forEach(track => {
+      const artist = track.artist
+      artistCount[artist] = (artistCount[artist] || 0) + 1
+    })
+
+    // Obtener artistas únicos
+    const uniqueArtists = Object.keys(artistCount).length
+
+    // Obtener top 3 artistas
+    const topArtists = Object.entries(artistCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([name, count]) => ({ name, count }))
+
+    return {
+      uniqueArtists,
+      topArtists,
+    }
+  }
+
+  const calculateArtistMetrics = () => {
+    if (playlistTracks.length === 0) {
+      return {
+        uniqueArtists: 0,
+        topArtists: [],
+      }
+    }
+
+    // Contar apariciones de cada artista
+    const artistCount: Record<string, number> = {}
+    playlistTracks.forEach(track => {
+      const artist = track.artist
+      artistCount[artist] = (artistCount[artist] || 0) + 1
+    })
+
+    // Obtener artistas únicos
+    const uniqueArtists = Object.keys(artistCount).length
+
+    // Obtener top 3 artistas
+    const topArtists = Object.entries(artistCount)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 3)
+      .map(([name, count]) => ({ name, count }))
+
+    return {
+      uniqueArtists,
+      topArtists,
+    }
   }
 
   const generateTracks = async (promptText: string): Promise<{ tracks: Track[]; playlistName: string; description: string }> => {
@@ -469,7 +563,7 @@ export default function MyPlaylistsPage() {
                 <div className="lg:col-span-1">
                   <div className="rounded-lg p-6" style={{ backgroundColor: "#1a1a1a" }}>
                     {/* Playlist Name */}
-                    <h1 className="text-2xl md:text-3xl font-bold text-white mb-4" style={{ fontFamily: "system-ui, -apple-system, sans-serif", letterSpacing: "0.02em" }}>
+                    <h1 className="text-xl md:text-2xl font-bold text-white mb-4" style={{ fontFamily: "system-ui, -apple-system, sans-serif", letterSpacing: "0.02em" }}>
                       {selectedPlaylist.name}
                     </h1>
                     
@@ -488,30 +582,33 @@ export default function MyPlaylistsPage() {
 
                     {/* Métricas */}
                     <div className="space-y-3">
-                      {/* Primera fila: Views y Saves */}
+                      {/* Primera fila: Public y Followers */}
                       <div className="grid grid-cols-2 gap-3">
                         <div className="flex items-center gap-2 text-white">
-                          <Eye className="w-4 h-4 text-[#1DB954] shrink-0" />
+                          <svg className="w-4 h-4 text-[#1DB954] shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                          </svg>
                           <div>
-                            <p className="text-xs text-gray-400">Views</p>
-                            <p className="text-sm font-semibold">{selectedPlaylist.views || 0}</p>
+                            <p className="text-xs text-gray-400">Public</p>
+                            <p className="text-sm font-semibold">{selectedPlaylist.public !== false ? "Yes" : "No"}</p>
                           </div>
                         </div>
-                        <div className="flex items-center gap-2 text-white">
-                          <Bookmark className="w-4 h-4 text-[#1DB954] shrink-0" />
-                          <div>
-                            <p className="text-xs text-gray-400">Saves</p>
-                            <p className="text-sm font-semibold">{selectedPlaylist.saves || 0}</p>
-                          </div>
-                        </div>
-                      </div>
-                      {/* Segunda fila: Followers y Songs */}
-                      <div className="grid grid-cols-2 gap-3">
                         <div className="flex items-center gap-2 text-white">
                           <Users className="w-4 h-4 text-[#1DB954] shrink-0" />
                           <div>
                             <p className="text-xs text-gray-400">Followers</p>
                             <p className="text-sm font-semibold">{selectedPlaylist.followers || 0}</p>
+                          </div>
+                        </div>
+                      </div>
+                      {/* Segunda fila: Saves (ahora Tracks) y Songs */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex items-center gap-2 text-white">
+                          <Bookmark className="w-4 h-4 text-[#1DB954] shrink-0" />
+                          <div>
+                            <p className="text-xs text-gray-400">Tracks</p>
+                            <p className="text-sm font-semibold">{selectedPlaylist.tracks_count || playlistTracks.length}</p>
                           </div>
                         </div>
                         <div className="flex items-center gap-2 text-white">
@@ -543,6 +640,42 @@ export default function MyPlaylistsPage() {
                       </div>
                     </div>
 
+                    {/* Métricas de Artistas */}
+                    {playlistTracks.length > 0 && (() => {
+                      const artistMetrics = calculateArtistMetrics()
+                      return (
+                        <div className="mt-6 pt-6 border-t border-[#333]">
+                          <div className="flex items-center gap-2 mb-4">
+                            <User className="w-5 h-5 text-[#1DB954]" />
+                            <h3 className="text-sm font-semibold text-white">Artists</h3>
+                          </div>
+                          <div className="space-y-3">
+                            <div className="flex items-center gap-2 text-white">
+                              <div className="w-4 h-4 shrink-0" />
+                              <div>
+                                <p className="text-xs text-gray-400">Unique Artists</p>
+                                <p className="text-sm font-semibold">{artistMetrics.uniqueArtists}</p>
+                              </div>
+                            </div>
+                            {artistMetrics.topArtists.length > 0 && (
+                              <div className="space-y-2">
+                                <p className="text-xs text-gray-400 mb-2">Top Artists</p>
+                                {artistMetrics.topArtists.map((artist, index) => (
+                                  <div key={artist.name} className="flex items-center justify-between text-white">
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-xs text-gray-500 w-4">{index + 1}.</span>
+                                      <span className="text-xs font-medium truncate flex-1">{artist.name}</span>
+                                    </div>
+                                    <span className="text-xs text-gray-400 ml-2">{artist.count} tracks</span>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      )
+                    })()}
+
                     {/* Botón para abrir en Spotify */}
                     <button
                       onClick={() => window.open(selectedPlaylist.external_url, "_blank")}
@@ -567,8 +700,6 @@ export default function MyPlaylistsPage() {
                 {/* Panel de Tracks (Derecha) */}
                 <div className="lg:col-span-2">
                   <div className="rounded-lg p-6" style={{ backgroundColor: "#1a1a1a" }}>
-                    <h2 className="text-xl font-semibold text-white mb-4">Tracks</h2>
-                    
                     {/* Input de edición con IA */}
                     <div className="mb-4">
                       <form onSubmit={handleEditWithAI} className="w-full">
@@ -616,6 +747,8 @@ export default function MyPlaylistsPage() {
                         </div>
                       </form>
                     </div>
+                    
+                    <h2 className="text-xl font-semibold text-white mb-4">Tracks</h2>
                     
                     {loadingTracks ? (
                       <div className="flex items-center justify-center py-20">
