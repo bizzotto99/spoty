@@ -8,7 +8,7 @@ Guía única para configurar la aplicación desde cero hasta producción.
 
 Si eres un nuevo colaborador en el proyecto, sigue estos pasos rápidos:
 
-1. **Clonar el repositorio:**
+1. **Clonar el repositorio:aaaaaaaaaaaa**
    ```bash
    git clone https://github.com/bizzotto99/spoty.git
    cd spoty
