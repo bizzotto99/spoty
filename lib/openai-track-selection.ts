@@ -73,38 +73,67 @@ export async function selectTracksWithOpenAI(
     }
   }
 
-  const systemMessage = `Eres un experto en música del sello discográfico "${labelName}".
+  const systemMessage = `Eres un experto especializado EXCLUSIVAMENTE en el sello discográfico (record label) "${labelName}".
 
-IMPORTANTE:
-- "${labelName}" es un SELLO DISCOGRÁFICO (record label)
-- Solo debes seleccionar canciones que EXISTEN y están publicadas bajo este sello
-- El label puede aparecer con variaciones de mayúsculas/minúsculas pero el texto es siempre "${labelName}"
+CONTEXTO DEL SELLO "${labelName}":
+- Es un sello discográfico independiente de música latina/urbana
+- Todos los álbumes publicados bajo este sello tienen el campo "label" = "${labelName}" en los metadatos de Spotify
+- El label puede aparecer como: "${labelName}", "DALE PLAY RECORDS", "dale play records", etc. (case-insensitive)
 
-INSTRUCCIONES:
-1. Selecciona EXACTAMENTE ${maxTracks} canciones del sello "${labelName}"
-2. Los nombres deben ser EXACTOS como aparecen en Spotify
-3. Para artistas, usa solo el nombre principal (sin "feat.", "ft.", "with", etc.)
-4. Varía los artistas (máximo 2-3 canciones del mismo artista)
-5. Respeta el mood, género y duración del prompt
-6. El orden debe ser lógico para la experiencia de escucha
+ARTISTAS PRINCIPALES DE "${labelName}" (que debes priorizar):
+- Paulo Londra
+- Duki  
+- Emilia Mernes
+- Tiago PZK
+- FMK
+- Rusherking
+- LIT killah
+- Nicki Nicole
+- Maria Becerra
+- Bizarrap
+- Ca7riel
+- Pablito Lescano
+- Big One
+- Khea
 
-CRÍTICO:
-- TODAS las canciones deben ser del sello "${labelName}"
-- NO inventes canciones que no existan
-- Solo selecciona canciones reales del catálogo de Spotify`
+INSTRUCCIONES CRÍTICAS:
+1. SOLO selecciona canciones que estés 100% SEGURO que pertenecen al sello "${labelName}"
+2. Si NO estás seguro de que una canción sea de "${labelName}", NO la incluyas
+3. Prioriza artistas de la lista anterior (todos son de "${labelName}")
+4. Los nombres de tracks y artistas deben ser EXACTOS como en Spotify
+5. Para artistas, usa SOLO el nombre principal (sin "feat.", "ft.", "with", etc.)
+6. Varía los artistas (máximo 2-3 canciones del mismo artista)
+7. El orden debe ser coherente con el mood del prompt
+
+VALIDACIÓN ESTRICTA:
+- Si dudas si una canción es de "${labelName}" → NO la incluyas
+- Mejor devolver canciones que SEPAS que son de "${labelName}" que arriesgarte con canciones inciertas
+- TODAS las canciones DEBEN tener el label "${labelName}" en Spotify
+
+GÉNEROS COMUNES EN "${labelName}":
+- Trap latino, Reggaeton, Rap argentino, Urban latino, Pop urbano`
 
   const userMessage = `PROMPT DEL USUARIO: "${userPrompt}"
 
 TAREA:
-Selecciona EXACTAMENTE ${maxTracks} canciones del sello discográfico "${labelName}" que mejor se ajusten al prompt.
+Selecciona EXACTAMENTE ${maxTracks} canciones que cumplan TODAS estas condiciones:
+1. ✅ Publicadas bajo el sello discográfico "${labelName}" (verificado en Spotify)
+2. ✅ Se ajusten al mood, género o actividad del prompt
+3. ✅ Nombres EXACTOS como aparecen en Spotify
 
-CONSIDERACIONES:
-- Duración: ${maxTracks} canciones (cada canción ≈ 3-4 minutos)
-- Si el prompt menciona artistas, géneros o mood, respétalos (pero solo si están en "${labelName}")
-- Los nombres de tracks y artistas deben ser EXACTOS para que Spotify los encuentre
-- TODAS las canciones deben ser del sello "${labelName}"
+PROCESO DE SELECCIÓN:
+1. Identifica el mood/género/actividad del prompt
+2. Piensa en artistas de "${labelName}" que encajen (usa la lista de artistas proporcionada)
+3. Selecciona canciones ESPECÍFICAS de esos artistas que estés SEGURO son de "${labelName}"
+4. Verifica mentalmente que cada canción sea de "${labelName}" antes de incluirla
+5. Si no estás 100% seguro, NO la incluyas
 
-Usa la función selectPlaylistTracks para devolver las ${maxTracks} canciones.`
+RECORDATORIO FINAL:
+- Solo canciones que SEPAS que son de "${labelName}"
+- Mejor devolver pocas canciones correctas que incluir canciones incorrectas
+- Nombres EXACTOS (track + artista principal)
+
+Usa la función selectPlaylistTracks para devolver las ${maxTracks} canciones de "${labelName}".`
 
   try {
     console.log(`🤖 Llamando a OpenAI para seleccionar ${maxTracks} canciones del label "${labelName}"...`)
