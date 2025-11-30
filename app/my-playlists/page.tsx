@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from "react"
 import { useRouter } from "next/navigation"
-import { ArrowLeft, Music, ExternalLink, Loader2, LogOut, ChevronDown, ListMusic, Eye, Bookmark, Users, Clock, Calendar, GripVertical, Trash2, Play } from "lucide-react"
+import { ArrowLeft, Music, ExternalLink, Loader2, LogOut, ChevronDown, ListMusic, Eye, Bookmark, Users, Clock, Calendar, GripVertical, Trash2, Play, Send } from "lucide-react"
 import { ParticlesBackground } from "@/components/particles-background"
 import { useSpotifyAuth } from "@/hooks/use-spotify-auth"
 import {
@@ -47,6 +47,8 @@ export default function MyPlaylistsPage() {
   const [playlistTracks, setPlaylistTracks] = useState<Track[]>([])
   const [loadingTracks, setLoadingTracks] = useState(false)
   const [draggedTrackIndex, setDraggedTrackIndex] = useState<number | null>(null)
+  const [editPrompt, setEditPrompt] = useState("")
+  const [editingWithAI, setEditingWithAI] = useState(false)
   const { isAuthenticated, isLoading, user, logout } = useSpotifyAuth()
   const router = useRouter()
 
@@ -121,12 +123,41 @@ export default function MyPlaylistsPage() {
     setPlaylistTracks([])
   }
 
-  const handleDeleteTrack = (trackId: string, trackName: string) => {
-    if (confirm(`Remove "${trackName}" from this playlist?`)) {
+  const handleDeleteTrack = async (trackId: string, trackName: string, trackUri: string) => {
+    if (!confirm(`Remove "${trackName}" from this playlist?`)) {
+      return
+    }
+
+    if (!selectedPlaylist) return
+
+    try {
+      const response = await fetch(`/api/playlist/${selectedPlaylist.spotify_playlist_id}/tracks/delete`, {
+        method: "DELETE",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          trackUris: [trackUri],
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Error eliminando track")
+      }
+
+      // Actualizar UI
       setPlaylistTracks(playlistTracks.filter(track => track.id !== trackId))
       toast.success("Track removed", {
-        description: "The track has been removed from the playlist",
+        description: "The track has been removed from Spotify",
         duration: 2000,
+      })
+    } catch (error) {
+      console.error("Error deleting track:", error)
+      toast.error("Couldn't remove track", {
+        description: error instanceof Error ? error.message : "Please try again",
+        duration: 4000,
       })
     }
   }
@@ -139,10 +170,14 @@ export default function MyPlaylistsPage() {
     e.preventDefault()
   }
 
-  const handleDrop = (e: React.DragEvent, dropIndex: number) => {
+  const handleDrop = async (e: React.DragEvent, dropIndex: number) => {
     e.preventDefault()
-    if (draggedTrackIndex === null) return
+    if (draggedTrackIndex === null || !selectedPlaylist) return
 
+    const rangeStart = draggedTrackIndex
+    const insertBefore = dropIndex > draggedTrackIndex ? dropIndex + 1 : dropIndex
+
+    // Optimistic update
     const newTracks = [...playlistTracks]
     const draggedItem = newTracks[draggedTrackIndex]
     newTracks.splice(draggedTrackIndex, 1)
@@ -155,10 +190,39 @@ export default function MyPlaylistsPage() {
     
     setPlaylistTracks(newTracks)
     setDraggedTrackIndex(null)
-    toast.success("Track reordered", {
-      description: "The track order has been updated",
-      duration: 2000,
-    })
+
+    try {
+      const response = await fetch(`/api/playlist/${selectedPlaylist.spotify_playlist_id}/tracks/reorder`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        credentials: "include",
+        body: JSON.stringify({
+          rangeStart,
+          insertBefore,
+          rangeLength: 1,
+        }),
+      })
+
+      if (!response.ok) {
+        // Revertir cambios si falla
+        setPlaylistTracks(playlistTracks)
+        const errorData = await response.json()
+        throw new Error(errorData.error || "Error reordenando track")
+      }
+
+      toast.success("Track reordered", {
+        description: "The track order has been updated in Spotify",
+        duration: 2000,
+      })
+    } catch (error) {
+      console.error("Error reordering track:", error)
+      toast.error("Couldn't reorder track", {
+        description: error instanceof Error ? error.message : "Please try again",
+        duration: 4000,
+      })
+    }
   }
 
   const formatDuration = (ms: number) => {
@@ -169,6 +233,75 @@ export default function MyPlaylistsPage() {
 
   const calculateTotalDuration = () => {
     return playlistTracks.reduce((total, track) => total + track.duration_ms, 0)
+  }
+
+  const generateTracks = async (promptText: string): Promise<{ tracks: Track[]; playlistName: string; description: string }> => {
+    const response = await fetch("/api/generate-playlist", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ prompt: promptText }),
+    })
+
+    if (!response.ok) {
+      const errorData = await response.json()
+      throw new Error(errorData.error || "Error generating playlist")
+    }
+
+    const data = await response.json()
+    
+    return {
+      tracks: data.tracks,
+      playlistName: data.playlistName,
+      description: data.description || "",
+    }
+  }
+
+  const handleEditWithAI = async (e: React.FormEvent) => {
+    e.preventDefault()
+    
+    if (!editPrompt.trim()) {
+      toast.error("What should we change?", {
+        description: "Tell us how to modify the playlist",
+        duration: 3000,
+      })
+      return
+    }
+
+    setEditingWithAI(true)
+    
+    try {
+      const result = await generateTracks(editPrompt)
+      // Convertir los tracks al formato que esperamos
+      const formattedTracks: Track[] = result.tracks.map((track, index) => ({
+        id: track.id,
+        name: track.name,
+        artist: track.artist,
+        album: track.album,
+        image: track.image,
+        duration_ms: track.duration_ms,
+        preview_url: track.preview_url || null,
+        uri: track.uri || `spotify:track:${track.id}`,
+        position: index,
+      }))
+      
+      setPlaylistTracks(formattedTracks)
+      setEditPrompt("")
+      toast.success("Playlist updated!", {
+        description: "Your playlist has been modified with AI",
+        duration: 2000,
+      })
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : "Try again"
+      toast.error("Couldn't update playlist", {
+        description: errorMessage,
+        duration: 4000,
+      })
+    } finally {
+      setEditingWithAI(false)
+    }
   }
 
   if (isLoading) {
@@ -328,9 +461,6 @@ export default function MyPlaylistsPage() {
                   <ArrowLeft size={20} />
                   <span className="text-sm font-medium">Back</span>
                 </button>
-                <h1 className="text-3xl md:text-4xl font-bold text-white" style={{ fontFamily: "system-ui, -apple-system, sans-serif", letterSpacing: "0.02em" }}>
-                  {selectedPlaylist.name}
-                </h1>
               </div>
 
               {/* Layout: Métricas a la izquierda, Tracks a la derecha */}
@@ -338,6 +468,11 @@ export default function MyPlaylistsPage() {
                 {/* Panel de Métricas (Izquierda) */}
                 <div className="lg:col-span-1">
                   <div className="rounded-lg p-6" style={{ backgroundColor: "#1a1a1a" }}>
+                    {/* Playlist Name */}
+                    <h1 className="text-2xl md:text-3xl font-bold text-white mb-4" style={{ fontFamily: "system-ui, -apple-system, sans-serif", letterSpacing: "0.02em" }}>
+                      {selectedPlaylist.name}
+                    </h1>
+                    
                     {/* Playlist Image */}
                     <div className="mb-6 aspect-square rounded-lg overflow-hidden shadow-lg">
                       <img
@@ -352,46 +487,51 @@ export default function MyPlaylistsPage() {
                     </div>
 
                     {/* Métricas */}
-                    <div className="space-y-4">
-                      <div className="flex items-center gap-3 text-white">
-                        <Eye className="w-5 h-5 text-[#1DB954]" />
-                        <div>
-                          <p className="text-sm text-gray-400">Views</p>
-                          <p className="text-xl font-semibold">{selectedPlaylist.views || 0}</p>
+                    <div className="space-y-3">
+                      {/* Primera fila: Views y Saves */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex items-center gap-2 text-white">
+                          <Eye className="w-4 h-4 text-[#1DB954] shrink-0" />
+                          <div>
+                            <p className="text-xs text-gray-400">Views</p>
+                            <p className="text-sm font-semibold">{selectedPlaylist.views || 0}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-white">
+                          <Bookmark className="w-4 h-4 text-[#1DB954] shrink-0" />
+                          <div>
+                            <p className="text-xs text-gray-400">Saves</p>
+                            <p className="text-sm font-semibold">{selectedPlaylist.saves || 0}</p>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 text-white">
-                        <Bookmark className="w-5 h-5 text-[#1DB954]" />
-                        <div>
-                          <p className="text-sm text-gray-400">Saves</p>
-                          <p className="text-xl font-semibold">{selectedPlaylist.saves || 0}</p>
+                      {/* Segunda fila: Followers y Songs */}
+                      <div className="grid grid-cols-2 gap-3">
+                        <div className="flex items-center gap-2 text-white">
+                          <Users className="w-4 h-4 text-[#1DB954] shrink-0" />
+                          <div>
+                            <p className="text-xs text-gray-400">Followers</p>
+                            <p className="text-sm font-semibold">{selectedPlaylist.followers || 0}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-2 text-white">
+                          <Music className="w-4 h-4 text-[#1DB954] shrink-0" />
+                          <div>
+                            <p className="text-xs text-gray-400">Songs</p>
+                            <p className="text-sm font-semibold">{playlistTracks.length}</p>
+                          </div>
                         </div>
                       </div>
-                      <div className="flex items-center gap-3 text-white">
-                        <Users className="w-5 h-5 text-[#1DB954]" />
-                        <div>
-                          <p className="text-sm text-gray-400">Followers</p>
-                          <p className="text-xl font-semibold">{selectedPlaylist.followers || 0}</p>
+                      {/* Tercera fila: Duration y Created en la misma línea */}
+                      <div className="flex items-center gap-2 text-white">
+                        <Clock className="w-4 h-4 text-[#1DB954] shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-400">Duration</p>
+                          <p className="text-sm font-semibold">{formatDuration(calculateTotalDuration())}</p>
                         </div>
-                      </div>
-                      <div className="flex items-center gap-3 text-white">
-                        <Music className="w-5 h-5 text-[#1DB954]" />
-                        <div>
-                          <p className="text-sm text-gray-400">Songs</p>
-                          <p className="text-xl font-semibold">{playlistTracks.length}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 text-white">
-                        <Clock className="w-5 h-5 text-[#1DB954]" />
-                        <div>
-                          <p className="text-sm text-gray-400">Duration</p>
-                          <p className="text-xl font-semibold">{formatDuration(calculateTotalDuration())}</p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-3 text-white">
-                        <Calendar className="w-5 h-5 text-[#1DB954]" />
-                        <div>
-                          <p className="text-sm text-gray-400">Created</p>
+                        <Calendar className="w-4 h-4 text-[#1DB954] shrink-0" />
+                        <div className="flex-1">
+                          <p className="text-xs text-gray-400">Created</p>
                           <p className="text-sm font-semibold">
                             {new Date(selectedPlaylist.created_at).toLocaleDateString('en-US', { 
                               year: 'numeric', 
@@ -428,6 +568,54 @@ export default function MyPlaylistsPage() {
                 <div className="lg:col-span-2">
                   <div className="rounded-lg p-6" style={{ backgroundColor: "#1a1a1a" }}>
                     <h2 className="text-xl font-semibold text-white mb-4">Tracks</h2>
+                    
+                    {/* Input de edición con IA */}
+                    <div className="mb-4">
+                      <form onSubmit={handleEditWithAI} className="w-full">
+                        <div
+                          className="flex items-center gap-0 rounded-full transition-all duration-300 w-full"
+                          style={{ backgroundColor: "#0a0a0a" }}
+                        >
+                          <input
+                            type="text"
+                            value={editPrompt}
+                            onChange={(e) => setEditPrompt(e.target.value)}
+                            placeholder="Edit playlist with AI... (e.g., 'add more energetic songs', 'remove slow songs')"
+                            className="flex-1 px-6 py-4 bg-transparent text-white placeholder-gray-500 outline-none font-sans text-base"
+                            style={{ color: "#ffffff" }}
+                            disabled={editingWithAI}
+                          />
+                          <button
+                            type="submit"
+                            disabled={editingWithAI}
+                            className="mr-3 p-2 rounded-full transition-all duration-300 hover:scale-110 flex items-center justify-center disabled:opacity-50 disabled:cursor-not-allowed"
+                            style={{
+                              backgroundColor: "#1DB954",
+                              color: "#000",
+                            }}
+                            onMouseEnter={(e) => {
+                              if (!editingWithAI) {
+                                e.currentTarget.style.boxShadow = "0 0 16px rgba(29, 185, 84, 0.4)"
+                                e.currentTarget.style.backgroundColor = "#1ed760"
+                              }
+                            }}
+                            onMouseLeave={(e) => {
+                              if (!editingWithAI) {
+                                e.currentTarget.style.boxShadow = "none"
+                                e.currentTarget.style.backgroundColor = "#1DB954"
+                              }
+                            }}
+                            aria-label="Edit with AI"
+                          >
+                            {editingWithAI ? (
+                              <Loader2 size={20} strokeWidth={2.5} className="animate-spin" />
+                            ) : (
+                              <Send size={20} strokeWidth={2.5} />
+                            )}
+                          </button>
+                        </div>
+                      </form>
+                    </div>
                     
                     {loadingTracks ? (
                       <div className="flex items-center justify-center py-20">
@@ -483,7 +671,7 @@ export default function MyPlaylistsPage() {
                               {formatDuration(track.duration_ms)}
                             </div>
                             <button
-                              onClick={() => handleDeleteTrack(track.id, track.name)}
+                              onClick={() => handleDeleteTrack(track.id, track.name, track.uri)}
                               className="p-2 rounded-lg transition-all duration-300 opacity-0 group-hover:opacity-100 hover:bg-red-500/20 shrink-0"
                               style={{ color: "#ef4444" }}
                               aria-label="Delete track"
@@ -501,27 +689,27 @@ export default function MyPlaylistsPage() {
           ) : (
             /* Vista de Grid de Playlists */
             <>
-              {/* Header */}
-              <div className="mb-8">
-                <button
-                  onClick={() => router.back()}
-                  className="flex items-center gap-2 mb-6 text-gray-400 hover:text-white transition-colors"
-                >
-                  <ArrowLeft size={20} />
-                  <span className="text-sm font-medium">Back</span>
-                </button>
-                
+          {/* Header */}
+          <div className="mb-8">
+            <button
+              onClick={() => router.back()}
+              className="flex items-center gap-2 mb-6 text-gray-400 hover:text-white transition-colors"
+            >
+              <ArrowLeft size={20} />
+              <span className="text-sm font-medium">Back</span>
+            </button>
+            
                 <h1 className="text-4xl md:text-5xl font-bold text-white mb-2" style={{ fontFamily: "system-ui, -apple-system, sans-serif", letterSpacing: "0.02em" }}>
-                  My Playlists
-                </h1>
-                <p className="text-gray-400 text-sm">
-                  {playlists.length === 0 
-                    ? "You haven't created any playlists yet" 
-                    : `${playlists.length} ${playlists.length === 1 ? 'playlist' : 'playlists'} created`}
-                </p>
-              </div>
+              My Playlists
+            </h1>
+            <p className="text-gray-400 text-sm">
+              {playlists.length === 0 
+                ? "You haven't created any playlists yet" 
+                : `${playlists.length} ${playlists.length === 1 ? 'playlist' : 'playlists'} created`}
+            </p>
+          </div>
 
-              {/* Playlists Grid */}
+          {/* Playlists Grid */}
           {loading ? (
             <div className="flex items-center justify-center py-20">
               <Loader2 className="w-8 h-8 text-[#1DB954] animate-spin" />
@@ -553,11 +741,11 @@ export default function MyPlaylistsPage() {
               </button>
             </div>
           ) : (
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
               {playlists.map((playlist) => (
                 <div
                   key={playlist.id}
-                  className="group cursor-pointer rounded-lg p-4 transition-all duration-300"
+                  className="group cursor-pointer rounded-lg p-3 transition-all duration-300"
                   style={{ backgroundColor: "#1a1a1a" }}
                   onMouseEnter={(e) => {
                     e.currentTarget.style.backgroundColor = "#252525"
@@ -570,7 +758,7 @@ export default function MyPlaylistsPage() {
                   onClick={() => handlePlaylistClick(playlist)}
                 >
                   {/* Playlist Image */}
-                  <div className="relative mb-4 aspect-square rounded-lg overflow-hidden shadow-lg">
+                  <div className="relative mb-3 aspect-square rounded-lg overflow-hidden shadow-lg">
                     <img
                       src={playlist.image || "/playlist.png"}
                       alt={playlist.name}
@@ -580,22 +768,15 @@ export default function MyPlaylistsPage() {
                         target.src = "/playlist.png"
                       }}
                     />
-                    {/* Overlay on hover */}
-                    <div className="absolute inset-0 bg-black bg-opacity-0 group-hover:bg-opacity-40 transition-all duration-300 flex items-center justify-center">
-                      <ExternalLink 
-                        className="w-12 h-12 text-white opacity-0 group-hover:opacity-100 transition-opacity duration-300"
-                        style={{ filter: "drop-shadow(0 0 8px rgba(29, 185, 84, 0.8))" }}
-                      />
-                    </div>
                   </div>
 
                   {/* Playlist Info */}
                   <div>
-                    <h3 className="text-white font-semibold mb-2 line-clamp-2 group-hover:text-[#1DB954] transition-colors">
+                    <h3 className="text-white font-semibold mb-1.5 line-clamp-2 group-hover:text-[#1DB954] transition-colors text-sm">
                       {playlist.name}
                     </h3>
                     {/* Métricas */}
-                    <div className="flex items-center gap-4 text-gray-400 text-xs">
+                    <div className="flex items-center gap-3 text-gray-400 text-xs">
                       <div className="flex items-center gap-1">
                         <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
